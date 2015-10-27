@@ -28,3 +28,12 @@
 
      :cljs
      (.stringify js/JSON x)))
+
+(defn ensure-key
+  "assocs a val of nil to the given key if the map doesn't contain key"
+  ([k default m]
+   (if (contains? m k)
+     m
+     (assoc m k default)))
+  ([k m]
+   (ensure-key k nil m)))

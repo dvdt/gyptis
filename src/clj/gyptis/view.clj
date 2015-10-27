@@ -10,25 +10,41 @@
             [environ.core :refer [env]]
             [org.httpkit.server :as http-kit]
             [compojure.core :refer [GET POST defroutes]]
-            [compojure.route :as routes]))
+            [compojure.route :as routes]
+            [clojure.core.async :as async  :refer [<! <!! >! >!! put! chan go go-loop]]))
 
 (def *channels* (atom {}))
+(defonce web-server_ (atom nil))
 
 (defn new!
-  "Opens a new browser tab. Returns that tab's websocket channel"
-  [& {:keys [name]}]
-  (let [ch-name (or name )]
-    ))
+  "Opens a new browser tab and returns that tab's uid.
+  Blocks until browser tab is connected by websocket."
+  [& {:keys [view-name]}]
+  (let [view-name (or view-name "default")
+        watch-key (keyword view-name)
+        connect-chan (chan)]
+    (browse/browse-url (str "http://localhost:" (:port @web-server_) "/views/" view-name))
+    (when-not (get-in @ws/connected-uids [:any view-name])
+      (add-watch ws/connected-uids watch-key
+                 (fn [k r old new]
+                   (debugf "New connected-uids=%s" (str new))
+                   (when (and (not (get-in old [:any view-name]))
+                              (get-in new [:any view-name]))
+                     (>!! connect-chan view-name))))
+      (<!! connect-chan) ; blocks until the view-name uid is connected-uids
+      (remove-watch ws/connected-uids watch-key)
+      (debugf "We've got a websocket!")
+      view-name)))
 
 (defn clear!
   "Clears all plots in the given channel"
   [ch]
-  (ws/chsk-send! ch [:gyptis.view/clear nil]))
+  (ws/chsk-send! ch [:gyptis/clear nil]))
 
 (defn plot!
   "Appends a plot into the channel"
   [ch vega-spec]
-  (ws/chsk-send! ch [:gyptis.view/plot vega-spec]))
+  (ws/chsk-send! ch [:gyptis/plot vega-spec]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Routes
@@ -50,9 +66,6 @@
      [:div {:class "container"}
       [:div {:class "row"}
        [:div {:class "col-lg-11 col-lg-offset-1"}
-        [:div#plot]]]
-      [:div {:class "row"}
-       [:div {:class "col-lg-11 col-lg-offset-1"}
         [:div#app
          [:h3 "ClojureScript has not been compiled!"]
          [:p "please run "
@@ -65,6 +78,7 @@
   (fn [ring-req]
     (prn "Got a ring-req=" ring-req)
     (-> ring-req handler)))
+
 (defroutes routes
   (GET "/" []
 
@@ -80,9 +94,9 @@
 (def app
   (let [handler (wrap-defaults #'routes site-defaults)]
     (if (env :dev) (-> handler wrap-exceptions wrap-reload) handler)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Start web server
-(defonce web-server_ (atom nil))
 
 (defn stop-web-server! [] (when-let [m @web-server_] ((:stop-fn m))))
 
@@ -98,5 +112,3 @@
   (ws/start!)
   (let [port (Integer/parseInt (or (env :port) "3000"))]
     (reset! web-server_  (start-web-server!* #'app port))))
-
-#_(-main)

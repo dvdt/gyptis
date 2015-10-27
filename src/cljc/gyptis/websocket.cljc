@@ -9,7 +9,7 @@
       [(:require [taoensso.sente :as sente]
                  [taoensso.sente.packers.transit :as sente-transit]
                  [cljs.core.async :as async  :refer (<! >! put! chan)]
-                 [taoensso.timbre :as timbre :refer-macros (tracef debugf infof warnf errorf)])
+                 [taoensso.timbre :as timbre :refer-macros (trace tracef debugf infof warnf errorf)])
        (:require-macros
         [cljs.core.async.macros :as asyncm :refer (go go-loop)])]))
 
@@ -25,7 +25,6 @@
          (sente/make-channel-socket! sente-web-server-adapter
                                      {:packer packer
                                       :user-id-fn (fn [ring-req]
-                                                    (debugf "user-id=%s" (:client-id ring-req))
                                                     (:client-id ring-req))})]
      (def ring-ajax-post                ajax-post-fn)
      (def ring-ajax-get-or-ws-handshake ajax-get-or-ws-handshake-fn)
@@ -73,12 +72,15 @@
       (when ?reply-fn
         (?reply-fn {:umatched-event-as-echoed-from-from-server event}))))
   ;; run this on client: (chsk-send! [:veg/echo {:data "datra"}])
-  (defmethod event-msg-handler :veg/echo
+  (defmethod event-msg-handler :gyptis/echo
     [{:as ev-msg :keys [event id ?data ring-req ?reply-fn uid]}]
     (debugf "echoing: %s" ?data)
     (chsk-send! uid [:veg/print ?data]))
   (defmethod event-msg-handler :chsk/ws-ping
-    [{:as ev-msg :keys [?data]}])))
+    [{:as ev-msg :keys [?data]}])
+
+  (defmethod event-msg-handler :chsk/uidport-open
+    [{:as ev-msg :keys [?data ring-req]}])))
 
 ;; Client-side methods
 :cljs
