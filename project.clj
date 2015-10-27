@@ -19,6 +19,8 @@
                  [http-kit "2.1.19"]
                  [org.clojure/java.jdbc "0.4.2"]
                  [com.cognitect/transit-clj "0.8.285"]
+                 [com.h2database/h2 "1.4.190"]
+                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
 
                  [org.clojure/clojurescript "1.7.145" :scope "provided"]
                  [com.cognitect/transit-cljs "0.8.225"]]
@@ -31,8 +33,6 @@
   :min-lein-version "2.5.0"
 
   :uberjar-name "gyptis.jar"
-
-  :main ^:skip-aot gyptis.server
 
   :clean-targets ^{:protect false} [:target-path
                                     [:cljsbuild :builds :app :compiler :output-dir]
@@ -51,9 +51,7 @@
                                         :optimizations :none
                                         :pretty-print  true}}}}
 
-  :profiles {:dev {:repl-options {:init-ns gyptis.repl}
-
-                   :dependencies [[ring/ring-mock "0.3.0"]
+  :profiles {:dev {:dependencies [[ring/ring-mock "0.3.0"]
                                   [ring/ring-devel "1.4.0"]
                                   [lein-figwheel "0.4.1"]
                                   [org.clojure/tools.nrepl "0.2.11"]
