@@ -28,19 +28,25 @@
   [axis]
   (assoc-in axis [:properties :labels :text :value] ""))
 
+(defn ensure-facet-keys
+  [data]
+  (map (fn [datum]
+         (->> datum
+          (u/ensure-key *facet-x* "")
+          (u/ensure-key *facet-y* ""))) data))
+
 (defn ->facet-mark
-  [template data]
-  (let [inner-spec (template data)]
-    {:type "group"
-     :from {:data *table*
-            :transform  [{:type "facet" :groupby [*facet-x* *facet-y*]}]}
-     :properties {:enter {:x {:scale "facet_x_scale" :field *facet-x*}
-                          :y {:scale "facet_y_scale" :field *facet-y*}
-                          :height {:scale "facet_y_scale" :band true}
-                          :width {:scale "facet_x_scale" :band true}}}
-     :marks (:marks inner-spec)
-     :scales (:scales inner-spec)
-     :axes (:axes inner-spec)}))
+  [inner-spec data]
+  {:type "group"
+   :from {:data *table*
+          :transform  [{:type "facet" :groupby [*facet-x* *facet-y*]}]}
+   :properties {:enter {:x {:scale "facet_x_scale" :field *facet-x*}
+                        :y {:scale "facet_y_scale" :field *facet-y*}
+                        :height {:scale "facet_y_scale" :band true}
+                        :width {:scale "facet_x_scale" :band true}}}
+   :marks (:marks inner-spec)
+   :scales (:scales inner-spec)
+   :axes (:axes inner-spec)})
 
 (defn add-facet-axes
   "Returns a vector of facetted group marks with axes legends in the
@@ -82,9 +88,9 @@
 (defn facet
   "Returns a vega spec with a facetted layout based on the *facet-x*
   and *facet-y* fields."
-  [template [datum & more :as data]]
-  (let [inner-spec (binding [*table* *table*] (template data))
-        facetted-marks (add-facet-axes (->facet-mark template data)
+  [inner-spec [datum & more :as data]]
+  {:pre [(contains? datum *facet-x*) (contains? datum *facet-y*)]}
+  (let [facetted-marks (add-facet-axes (->facet-mark inner-spec data)
                                        data)]
     {:data (:data inner-spec)
      :legends (:legends inner-spec)
@@ -105,8 +111,24 @@
              :properties {:axis {:strokeWidth {:value 0}}}}]
      :marks facetted-marks}))
 
-(def bar
-  {:scales [{:name "x",
+(def top-level
+  {:width 800
+   :height 600
+   :padding {:top 100, :left 100, :bottom 100, :right 200}
+   :data []
+   :scales []
+   :axes []
+   :marks []
+   :legends []})
+
+(defn assoc-hover
+  [vg hover-spec]
+  (assoc-in [:marks 0 :properties :hover] hover-spec))
+
+(defn bar
+  [data]
+  {:data [{:name *table* :values data}]
+   :scales [{:name "x",
              :type "ordinal",
              :range "width",
              :domain {:data *table*, :field *x*}}
@@ -119,16 +141,13 @@
    :axes [{:type "x", :scale "x"} {:type "y", :scale "y"}],
    :marks
    [{:type "rect",
-     :from {:data *table*},
      :properties
-     {:enter
+     {:update
       {:x {:scale "x", :field *x*},
        :width {:scale "x", :band true, :offset -1},
        :y {:scale "y", :field *y*},
        :y2 {:scale "y", :value 0}
-       :fill {:value "steelblue"}},
-      #_:update #_{:fill {:value "steelblue"}},
-      #_:hover #_{:fill {:value "red"}}}}]})
+       :fill {:value "steelblue"}}}}]})
 
 (def stack-transform
   {:type "stack"
@@ -137,11 +156,11 @@
 
 (defn stacked-bar
   "Stacks bars on the `fill' field"
-  [[datum & more]]
-  (if-not (contains? datum *fill*) bar
+  [[datum & more :as data]]
+  (if-not (contains? datum *fill*) (bar data)
           (let [mark {:type "rect"
                       :from {:transform [stack-transform]}
-                      :properties {:enter {:x {:scale "x" :field *x*}
+                      :properties {:update {:x {:scale "x" :field *x*}
                                            :width {:scale "x" :band true :offset -1}
                                            :y {:scale "y" :field "layout_start"}
                                            :y2 {:scale "y" :field "layout_end"}
@@ -149,9 +168,9 @@
                 sum_y_data {:name "stats"
                             :source *table*
                             :transform [{:type "aggregate"
-                                         :groupby [*x* *facet-x* *facet-y*]
+                                         :groupby [*x*]
                                          :summarize [{:field *y* :ops "sum"}]}]}]
-            (merge-spec bar
+            (merge-spec (bar data)
                         {:data [sum_y_data]
                          :scales
                          ^:replace [{:name "x",
@@ -173,8 +192,9 @@
                          :legends [{:fill "fill"}]
                          :marks ^:replace [mark]}))))
 
-(def dodged-bars-mark
+(defn dodged-bars-mark
   "Dodges bars on the fill. Assumes that a x, y and fill scales have been previously defined."
+  []
   {:type "group",
    :from
    {:data *table*,
@@ -185,14 +205,14 @@
      :range "width",
      :domain {:field *fill*}}],
    :properties
-   {:enter
+   {:update
     {:x {:scale "x", :field *x*},
      :width {:scale "x", :band true}}},
    :marks
    [{:name "dodged-bars",
      :type "rect",
      :properties
-     {:enter
+     {:update
       {:x {:scale "x-dodge", :field *fill*},
        :width {:scale "x-dodge", :band true},
        :y {:scale "y", :field *y*},
@@ -202,8 +222,8 @@
 (defn dodged-bar
   "Returns a vega spec for plotting a dodged bar plot. Requires *x* and
  *y* aesthetics. Optional aesthetics: *fill*"
-  [[datum & more]]
-  (let [spec (merge-spec bar
+  [[datum & more :as data]]
+  (let [spec (merge-spec (bar data)
                            {:scales ^:replace [{:name "x",
                                                 :type "ordinal",
                                                 :padding 0.2,
@@ -219,7 +239,7 @@
                              :type "ordinal",
                              :domain {:data *table*, :field *fill*},
                              :range "category20"}]
-                   :marks ^:replace [dodged-bars-mark]
+                   :marks ^:replace [(dodged-bars-mark)]
                    :legends [{:fill "fill"}]}
         spec (if-not (contains? datum *fill*) spec
                      (merge-spec spec fill-spec))]
@@ -242,11 +262,12 @@
                               "linear" {:type "linear" :nice true}))
         default-point {:scales [x-scale y-scale]
                        :axes [{:type "x", :scale "x"} {:type "y", :scale "y"}]
+                       :data [{:name *table* :values data}]
                        :mark-tmp
                        {:type "symbol",
-                        :from {},
+                        :from {:data *table*},
                         :properties
-                        {:enter
+                        {:update
                          {:x {:scale "x", :field *x*},
                           :y {:scale "y", :field *y*},
                           :fill {:value "steelblue"}
@@ -260,7 +281,7 @@
                                  :type "ordinal",
                                  :domain {:data *table*, :field *fill*},
                                  :range "category20"}]
-                       :mark-tmp {:properties {:enter
+                       :mark-tmp {:properties {:update
                                                {:fill ^:replace
                                                 {:scale "fill", :field *fill*}}}}
                        :legends [{:fill "fill"}]})
@@ -272,7 +293,7 @@
                                               "linear" {:type "linear" :nice true :round true}
                                               "ordinal" {:type "ordinal" :points true}))]
                        :legends [{:size "size"}]
-                       :mark-tmp {:properties {:enter
+                       :mark-tmp {:properties {:update
                                                {:size ^:replace
                                                 {:scale "size", :field *size*}}}}}))]
     (-> spec (assoc :marks [(:mark-tmp spec)]) (dissoc :mark-tmp))))

@@ -31,9 +31,11 @@
                    (when (and (not (get-in old [:any view-name]))
                               (get-in new [:any view-name]))
                      (>!! connect-chan view-name))))
-      (<!! connect-chan) ; blocks until the view-name uid is connected-uids
+      (let [[msg ch] (async/alts!! [connect-chan (async/timeout 10000)])]
+        (if-not msg
+          (warnf "Couldn't connect websocket to browser window!")
+          (debugf "We've got a websocket!"))) ; blocks until the view-name uid is connected-uids
       (remove-watch ws/connected-uids watch-key)
-      (debugf "We've got a websocket!")
       view-name)))
 
 (defn clear!

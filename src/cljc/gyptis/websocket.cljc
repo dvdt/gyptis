@@ -17,6 +17,7 @@
   "URL endpoint for websocket connections."
   "/chsk")
 
+;; Manual testing showed transit :json giving the best performance.
 (def packer (sente-transit/get-flexi-packer :json))
 
 #?(:clj
@@ -103,35 +104,15 @@
       [{:as ev-msg :keys [?data]}]
       (let [[?uid ?csrf-token ?handshake-data] ?data]
         (debugf "Handshake: %s" ?data))))
-;; Add your (defmethod handle-event-msg! <event-id> [ev-msg] <body>)s here...
-
-
-;; this broadcaster sends random data to the client to plot.
-#?(:clj
-   (do
-     (defn start-broadcaster! []
-       (go-loop [i 0]
-         (<! (async/timeout 10000))
-         (println (format "Broadcasting server>user: %s" @connected-uids))
-         (doseq [uid (:any @connected-uids)]
-           (chsk-send! uid
-                       [:some/broadcast
-                        {:what-is-this "A broadcast pushed from server"
-                         :how-often    "Every 10 seconds"
-                         :to-whom uid
-                         :i i}]))
-         (recur (inc i))))
-))
 
 ;;;; Init
 (defonce router_ (atom nil))
 
 (defn stop-router! [] (when-let [stop-f @router_] (stop-f)))
+
 (defn start-router! []
   (stop-router!)
   (reset! router_ (sente/start-chsk-router! ch-chsk event-msg-handler*)))
 
 (defn start! []
-  (start-router!)
- ; #?(:clj (start-broadcaster!))
-)
+  (start-router!))

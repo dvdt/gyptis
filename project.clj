@@ -21,7 +21,8 @@
                  [com.cognitect/transit-clj "0.8.285"]
                  [com.h2database/h2 "1.4.190"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
-
+                 [clj-time "0.11.0"]
+                 [com.github.fge/json-schema-validator "2.2.6"]
                  [org.clojure/clojurescript "1.7.145" :scope "provided"]
                  [com.cognitect/transit-cljs "0.8.225"]]
 
@@ -97,6 +98,5 @@
                                          {:source-paths ["env/prod/cljs"]
                                           :compiler
                                           {:optimizations :advanced
-                                           :externs ["externs/vega.ext.js"
-                                                     #_"resources/public/vendor/ace/ace.js"]
+                                           :externs ["externs/vega.ext.js"]
                                            :pretty-print false}}}}}})
