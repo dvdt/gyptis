@@ -54,35 +54,44 @@
   [facet-mark [datum & more :as data]]
   (let [first-facet-x (->> *facet-x* (get datum) u/->json)
         last-facet-y (->> *facet-y* (get (last more)) u/->json)
-        unlabelled-facet-mark (-> facet-mark
-                                  (update-in [:axes] #(mapv suppress-axis-labels %))
-                                  (update-in [:from :transform] conj {:type "filter"
-                                                                      :test (str "datum." (name *facet-x*) "!==" first-facet-x
-                                                                                 " && datum." (name *facet-y*) "!==" last-facet-y)}))
-        x-labelled-facet-mark (-> unlabelled-facet-mark
-                                (assoc-in [:from :transform 1] {:type "filter"
-                                                                :test (str "datum." (name *facet-x*) "!==" first-facet-x
-                                                                           " && datum." (name *facet-y*) "===" last-facet-y)})
-                                (merge-spec {:axes ^:replace [{:type "x"
-                                                               :scale "x"}
-                                                              {:type "y"
-                                                               :scale "y" :properties {:labels {:text {:value ""}}}}]}))
-        y-labelled-facet-mark (-> unlabelled-facet-mark
-                                  (assoc-in [:from :transform 1] {:type "filter"
-                                                                  :test (str "datum." (name *facet-x*) "===" first-facet-x
-                                                                           " && datum." (name *facet-y*) "!==" last-facet-y)})
-                                  (merge-spec {:axes ^:replace [{:type "x"
-                                                                 :scale "x" :properties {:labels {:text {:value ""}}}}
-                                                                {:type "y"
-                                                                 :scale "y"}]}))
-        xy-labelled-facet-mark (-> unlabelled-facet-mark
-                                  (assoc-in [:from :transform 1] {:type "filter"
-                                                                  :test (str "datum." (name *facet-x*) "===" first-facet-x
-                                                                             " && datum." (name *facet-y*) "===" last-facet-y)})
-                                  (merge-spec {:axes ^:replace [{:type "x"
-                                                                 :scale "x"}
-                                                                {:type "y"
-                                                                 :scale "y"}]}))]
+        unlabelled-facet-pred (str "datum." (name *facet-x*) "!==" first-facet-x
+                                   " && datum." (name *facet-y*) "!==" last-facet-y)
+        x-label-facet-pred (str "datum." (name *facet-x*) "!==" first-facet-x
+                                " && datum." (name *facet-y*) "!==" last-facet-y)
+        y-label-facet-pred   (str "datum." (name *facet-x*) "===" first-facet-x
+                                  " && datum." (name *facet-y*) "!==" last-facet-y)
+        xy-label-facet-pred (str "datum." (name *facet-x*) "===" first-facet-x
+                                   " && datum." (name *facet-y*) "===" last-facet-y)
+
+        unlabelled-facet-mark
+        (-> facet-mark
+            (update-in [:axes] #(mapv suppress-axis-labels %))
+            (update-in [:from :transform] conj {:type "filter"
+                                                :test unlabelled-facet-pred}))
+        x-labelled-facet-mark
+        (-> unlabelled-facet-mark
+            (assoc-in [:from :transform 1] {:type "filter"
+                                            :test x-label-facet-pred})
+            (merge-spec {:axes ^:replace [{:type "x"
+                                           :scale "x"}
+                                          {:type "y"
+                                           :scale "y" :properties {:labels {:text {:value ""}}}}]}))
+        y-labelled-facet-mark
+        (-> unlabelled-facet-mark
+            (assoc-in [:from :transform 1] {:type "filter"
+                                            :test y-label-facet-pred})
+            (merge-spec {:axes ^:replace [{:type "x"
+                                           :scale "x" :properties {:labels {:text {:value ""}}}}
+                                          {:type "y"
+                                           :scale "y"}]}))
+        xy-labelled-facet-mark
+        (-> unlabelled-facet-mark
+            (assoc-in [:from :transform 1] {:type "filter"
+                                            :test xy-label-facet-pred})
+            (merge-spec {:axes ^:replace [{:type "x"
+                                           :scale "x"}
+                                          {:type "y"
+                                           :scale "y"}]}))]
     [unlabelled-facet-mark x-labelled-facet-mark y-labelled-facet-mark xy-labelled-facet-mark]))
 
 (defn facet
@@ -123,7 +132,7 @@
 
 (defn assoc-hover
   [vg hover-spec]
-  (assoc-in [:marks 0 :properties :hover] hover-spec))
+  (assoc-in vg [:marks 0 :properties :hover] hover-spec))
 
 (defn bar
   [data]
@@ -157,40 +166,39 @@
 (defn stacked-bar
   "Stacks bars on the `fill' field"
   [[datum & more :as data]]
-  (if-not (contains? datum *fill*) (bar data)
-          (let [mark {:type "rect"
-                      :from {:transform [stack-transform]}
-                      :properties {:update {:x {:scale "x" :field *x*}
-                                           :width {:scale "x" :band true :offset -1}
-                                           :y {:scale "y" :field "layout_start"}
-                                           :y2 {:scale "y" :field "layout_end"}
-                                           :fill {:scale "fill" :field *fill*}}}}
-                sum_y_data {:name "stats"
-                            :source *table*
-                            :transform [{:type "aggregate"
-                                         :groupby [*x*]
-                                         :summarize [{:field *y* :ops "sum"}]}]}]
-            (merge-spec (bar data)
-                        {:data [sum_y_data]
-                         :scales
-                         ^:replace [{:name "x",
-                                     :type "ordinal",
-                                     :domain {:data *table*, :field *x*},
-                                     :range "width"}
-                                    {:name "y",
-                                     :type "linear",
-                                     :domain {:data "stats", :field (str "sum_" (name *y*))},
-                                     :range "height",
-                                     :round true,
-                                     :nice true}
-                                    {:name "fill",
-                                     :type "ordinal",
-                                     :domain {:data *table*, :field *fill*},
-                                     :range "category20"}],
-                         :axes ^:replace [{:type "x", :scale "x"}
-                                          {:type "y", :scale "y"}],
-                         :legends [{:fill "fill"}]
-                         :marks ^:replace [mark]}))))
+  (let [mark {:type "rect"
+              :from {:transform [stack-transform]}
+              :properties {:update {:x {:scale "x" :field *x*}
+                                    :width {:scale "x" :band true :offset -1}
+                                    :y {:scale "y" :field "layout_start"}
+                                    :y2 {:scale "y" :field "layout_end"}
+                                    :fill {:scale "fill" :field *fill*}}}}
+        sum_y_data {:name "stats"
+                    :source *table*
+                    :transform [{:type "aggregate"
+                                 :groupby [*x*]
+                                 :summarize [{:field *y* :ops "sum"}]}]}]
+    (merge-spec (bar data)
+                {:data [sum_y_data]
+                 :scales
+                 ^:replace [{:name "x",
+                             :type "ordinal",
+                             :domain {:data *table*, :field *x*},
+                             :range "width"}
+                            {:name "y",
+                             :type "linear",
+                             :domain {:data "stats", :field (str "sum_" (name *y*))},
+                             :range "height",
+                             :round true,
+                             :nice true}
+                            {:name "fill",
+                             :type "ordinal",
+                             :domain {:data *table*, :field *fill*},
+                             :range "category20"}],
+                 :axes ^:replace [{:type "x", :scale "x"}
+                                  {:type "y", :scale "y"}],
+                 :legends (if (contains? datum *fill*) [{:fill "fill"}] [])
+                 :marks ^:replace [mark]})))
 
 (defn dodged-bars-mark
   "Dodges bars on the fill. Assumes that a x, y and fill scales have been previously defined."
