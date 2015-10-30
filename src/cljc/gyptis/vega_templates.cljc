@@ -205,8 +205,7 @@
   []
   {:type "group",
    :from
-   {:data *table*,
-    :transform [{:type "facet", :groupby [*x*]}]},
+   {:transform [{:type "facet", :groupby [*x*]}]},
    :scales
    [{:name "x-dodge",
      :type "ordinal",
@@ -248,9 +247,8 @@
                              :domain {:data *table*, :field *fill*},
                              :range "category20"}]
                    :marks ^:replace [(dodged-bars-mark)]
-                   :legends [{:fill "fill"}]}
-        spec (if-not (contains? datum *fill*) spec
-                     (merge-spec spec fill-spec))]
+                   :legends (if (contains? datum *fill*) [{:fill "fill"}] [])}
+        spec (merge-spec spec fill-spec)]
     spec))
 
 (defn point
