@@ -36,38 +36,3 @@
                  (-> vega-spec facet-global))))
   ([vega-spec]
    (plot vega-spec *current-plot-key*)))
-
-(defn point
-  [data]
-  (let [data (vega/ensure-facet-keys data)
-        point-spec (vega/point data)
-        facetted-spec (vega/facet (update-in point-spec [:marks 0 :from] (constantly nil))
-                                  data)]
-    (wrap-dims facetted-spec)))
-
-(defn stacked-bar
-  [data]
-  (let [data (vega/ensure-facet-keys data)
-        spec (-> data
-                 vega/stacked-bar
-                 #_(update-in [:data 1 :transform :groupby]
-                            #(concat % [vega/*facet-x* vega/*facet-y*]))
-                 (vega/facet data))]
-    (wrap-dims spec)))
-
-(defn bar
-  [data]
-  (stacked-bar data))
-
-(defn dodged-bar
-  [data]
-  (let [data (vega/ensure-facet-keys data)
-        spec (-> data
-                 vega/dodged-bar
-                 (vega/facet data))]
-    (wrap-dims spec)))
-
-(defn line
-  [data]
-  nil
-  (comment (vega/facet vega/line data)))

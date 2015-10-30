@@ -12,21 +12,35 @@
 (def ^:dynamic *facet-x* :facet_x)
 (def ^:dynamic *facet-y* :facet_y)
 
-(defn guess-scale-type
-  "Returns linear or ordinal"
+(defn- first-non-nil
   [data field]
-  (when-let [d (first (drop-while nil? (map #(get % field) data)))]
-    (cond
-      (number? d) "linear"
-      (or (string? d) (nil? d)) "ordinal"
-      :else (throw #?(:cljs
-                      (js/Error (str "Can't guess scale type for " d ", type= " (type d)))
-                      :clj
-                      (Exception. (str "Can't guess scale type for " d)))))))
+  (->> data
+       (map #(get % field))
+       (drop-while nil?)
+       first))
+
+(defn guess-scale-type
+  "Returns linear or ordinal or time."
+  [data field]
+  (if-let [meta-type (-> data meta (get field))]
+    ;; first check the metadata on data for scale-type info
+    meta-type
+    ;; otherwise try to guess
+    (when-let [d (first-non-nil data field)]
+      (cond
+        (u/date? d) "time"
+        (number? d) "linear"
+        (or (string? d) (nil? d)) "ordinal"
+        :else (throw #?(:cljs
+                        (js/Error (str "Can't guess scale type for " d ", type= " (type d)))
+                        :clj
+                        (Exception. (str "Can't guess scale type for " d))))))))
 
 (defn suppress-axis-labels
   [axis]
-  (assoc-in axis [:properties :labels :text :value] ""))
+  (-> axis
+      (assoc-in [:properties :labels :text :value] "")
+      (assoc-in [:title] "")))
 
 (defn ensure-facet-keys
   [data]
@@ -69,29 +83,23 @@
             (update-in [:from :transform] conj {:type "filter"
                                                 :test unlabelled-facet-pred}))
         x-labelled-facet-mark
-        (-> unlabelled-facet-mark
+        (-> facet-mark
             (assoc-in [:from :transform 1] {:type "filter"
                                             :test x-label-facet-pred})
-            (merge-spec {:axes ^:replace [{:type "x"
-                                           :scale "x"}
-                                          {:type "y"
-                                           :scale "y" :properties {:labels {:text {:value ""}}}}]}))
+            (update-in [:axes] (partial mapv
+                                        (fn [{:keys [type scale properties] :as axis}]
+                                          (if (= type "y") (suppress-axis-labels axis) axis)))))
         y-labelled-facet-mark
-        (-> unlabelled-facet-mark
+        (-> facet-mark
             (assoc-in [:from :transform 1] {:type "filter"
                                             :test y-label-facet-pred})
-            (merge-spec {:axes ^:replace [{:type "x"
-                                           :scale "x" :properties {:labels {:text {:value ""}}}}
-                                          {:type "y"
-                                           :scale "y"}]}))
+            (update-in [:axes] (partial mapv
+                                        (fn [{:keys [type scale properties] :as axis}]
+                                          (if (= type "x") (suppress-axis-labels axis) axis)))))
         xy-labelled-facet-mark
-        (-> unlabelled-facet-mark
+        (-> facet-mark
             (assoc-in [:from :transform 1] {:type "filter"
-                                            :test xy-label-facet-pred})
-            (merge-spec {:axes ^:replace [{:type "x"
-                                           :scale "x"}
-                                          {:type "y"
-                                           :scale "y"}]}))]
+                                            :test xy-label-facet-pred}))]
     [unlabelled-facet-mark x-labelled-facet-mark y-labelled-facet-mark xy-labelled-facet-mark]))
 
 (defn facet
@@ -101,7 +109,7 @@
   {:pre [(contains? datum *facet-x*) (contains? datum *facet-y*)]}
   (let [facetted-marks (add-facet-axes (->facet-mark inner-spec data)
                                        data)]
-    {:data (:data inner-spec)
+    {:data (concat [{:name *table* :values data}] (rest (:data inner-spec)))
      :legends (:legends inner-spec)
      :scales (vec (concat [{:name "facet_x_scale"
                             :type "ordinal"
@@ -133,6 +141,22 @@
 (defn assoc-hover
   [vg hover-spec]
   (assoc-in vg [:marks 0 :properties :hover] hover-spec))
+
+(defn ->vg-data*
+  [data field]
+  (case (guess-scale-type data field)
+    "time" (let [millis-time (map #(update % field u/->epoch-millis) data)]
+             (vary-meta millis-time assoc field "time"))
+    "linear" (vary-meta data assoc field "linear")
+    "ordinal" (vary-meta data assoc field "ordinal")))
+
+(defn ->vg-data
+  "Converts class types into data that vega.js understands."
+  [data]
+  (let [fields (-> data first keys)]
+    (reduce (fn [acc, field]
+              (->vg-data* acc field))
+             data fields)))
 
 (defn bar
   [data]
@@ -176,7 +200,7 @@
         sum_y_data {:name "stats"
                     :source *table*
                     :transform [{:type "aggregate"
-                                 :groupby [*x*]
+                                 :groupby [*x* *facet-x* *facet-y*]
                                  :summarize [{:field *y* :ops "sum"}]}]}]
     (merge-spec (bar data)
                 {:data [sum_y_data]
@@ -210,11 +234,12 @@
    [{:name "x-dodge",
      :type "ordinal",
      :range "width",
-     :domain {:field *fill*}}],
+     :domain {:data *table* :field *fill*}}],
    :properties
    {:update
     {:x {:scale "x", :field *x*},
-     :width {:scale "x", :band true}}},
+     :width {:scale "x", :band true}}
+    },
    :marks
    [{:name "dodged-bars",
      :type "rect",
@@ -260,12 +285,14 @@
         x-scale (merge-spec {:name "x" :domain {:data *table* :field *x*} :range "width"}
                             (case x-type
                               "ordinal" {:type "ordinal" :points true :padding 1}
-                              "linear" {:type "linear" :nice true :round true}))
+                              "linear" {:type "linear" :nice true :round true}
+                              "time" {:type "time"}))
         y-type (guess-scale-type data *y*)
         y-scale (merge-spec {:name "y" :domain {:data *table* :field *y*} :range "height"}
                             (case y-type
                               "ordinal" {:type "ordinal" :points true :padding 1}
-                              "linear" {:type "linear" :nice true}))
+                              "linear" {:type "linear" :nice true}
+                              "time" {:type "time"}))
         default-point {:scales [x-scale y-scale]
                        :axes [{:type "x", :scale "x"} {:type "y", :scale "y"}]
                        :data [{:name *table* :values data}]
@@ -294,6 +321,7 @@
                                            (case (guess-scale-type data *size*)
                                              "linear" {:type "linear" :nice true :round true}
                                              "ordinal" {:type "ordinal" :points true}
+                                             "time" {:type "time" :points true}
                                              nil {:type "ordinal" :points true
                                                   :range [[25 25]]}))]
                       :legends (if (contains? datum *size*) [{:size "size"}] [])
