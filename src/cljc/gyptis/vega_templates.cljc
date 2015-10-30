@@ -280,26 +280,25 @@
                           :size {:value 10},
                           :fillOpacity {:value 1}},
                          :hover {:fillOpacity {:value 1}}}}}
-        spec
-        (merge-spec default-point
-                    (when-let [fill-type (guess-scale-type data *fill*)]
-                      {:scales [{:name "fill",
-                                 :type "ordinal",
-                                 :domain {:data *table*, :field *fill*},
-                                 :range "category20"}]
-                       :mark-tmp {:properties {:update
-                                               {:fill ^:replace
-                                                {:scale "fill", :field *fill*}}}}
-                       :legends [{:fill "fill"}]})
-                    (when-let [size-type (guess-scale-type data *size*)]
-                      {:scales [(merge-spec {:name "size"
-                                             :domain {:data *table*, :field *size*}
-                                             :range [16 100]}
-                                            (case size-type
-                                              "linear" {:type "linear" :nice true :round true}
-                                              "ordinal" {:type "ordinal" :points true}))]
-                       :legends [{:size "size"}]
-                       :mark-tmp {:properties {:update
-                                               {:size ^:replace
-                                                {:scale "size", :field *size*}}}}}))]
+        fill-specs {:scales [{:name "fill",
+                              :type "ordinal",
+                              :domain {:data *table*, :field *fill*},
+                              :range "category20"}]
+                    :mark-tmp {:properties {:update
+                                            {:fill ^:replace
+                                             {:scale "fill", :field *fill*}}}}
+                    :legends (if (contains? datum *fill*) [{:fill "fill"}] [])}
+        size-specs   {:scales [(merge-spec {:name "size"
+                                            :domain {:data *table*, :field *size*}
+                                            :range [16 100]}
+                                           (case (guess-scale-type data *size*)
+                                             "linear" {:type "linear" :nice true :round true}
+                                             "ordinal" {:type "ordinal" :points true}
+                                             nil {:type "ordinal" :points true
+                                                  :range [[25 25]]}))]
+                      :legends (if (contains? datum *size*) [{:size "size"}] [])
+                      :mark-tmp {:properties {:update
+                                              {:size ^:replace
+                                               {:scale "size", :field *size*}}}}}
+        spec (merge-spec default-point fill-specs size-specs)]
     (-> spec (assoc :marks [(:mark-tmp spec)]) (dissoc :mark-tmp))))
