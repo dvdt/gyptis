@@ -323,10 +323,28 @@
                                              "ordinal" {:type "ordinal" :points true}
                                              "time" {:type "time" :points true}
                                              nil {:type "ordinal" :points true
-                                                  :range [[25 25]]}))]
+                                                  :range ^:replace [25 25]}))]
                       :legends (if (contains? datum *size*) [{:size "size"}] [])
                       :mark-tmp {:properties {:update
                                               {:size ^:replace
                                                {:scale "size", :field *size*}}}}}
         spec (merge-spec default-point fill-specs size-specs)]
     (-> spec (assoc :marks [(:mark-tmp spec)]) (dissoc :mark-tmp))))
+
+(defn line
+  "line chart"
+  [data]
+  (let [point-spec (point data)
+        line-mark (-> {:type "line"}
+                      (assoc-in [:properties :update]
+                                {:x {:scale "x" :field *x*}
+                                 :y {:scale "y" :field *y*}
+                                 :stroke {:scale "fill" :field *fill*}
+                                 :strokeWidth {:value 2}}))
+        group-mark {:type "group"
+                    :from {:name *table*
+                           :transform [{:type "facet"
+                                        :groupby [*fill*]}]}
+                    :marks [line-mark]}]
+    (-> point-spec
+        (assoc :marks [group-mark]))))

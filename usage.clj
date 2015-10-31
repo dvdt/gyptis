@@ -36,14 +36,22 @@
 ;; Works on time series.
 
 (def time-series-data
-  [{:x (java.util.Date. "Jan 1, 2015"), :y 10}
-   {:x (java.util.Date. "Jan 2, 2015"), :y 0}
-   {:x (java.util.Date. "Jan 3, 2015"), :y 1}
-   {:x (java.util.Date. "Jan 4, 2015"), :y 3}])
+  [{:x (java.util.Date. "Jan 1, 2015"), :y 4 :fill "a"}
+   {:x (java.util.Date. "Jan 2, 2015"), :y 0 :fill "a"}
+   {:x (java.util.Date. "Jan 3, 2015"), :y 1 :fill "a"}
+   {:x (java.util.Date. "Jan 4, 2015"), :y 3 :fill "a"}
+   {:x (java.util.Date. "Jan 1, 2015"), :y 3 :fill "b"}
+   {:x (java.util.Date. "Jan 2, 2015"), :y 10 :fill "b"}
+   {:x (java.util.Date. "Jan 3, 2015"), :y 9 :fill "b"}
+   {:x (java.util.Date. "Jan 4, 2015"), :y 5 :fill "b"}])
 
 ;; plot every hashmap in `data' as a point
-(plot :bar-plot
+(plot :time-series
       (-> time-series-data vega/->vg-data vega/point))
+
+(plot :time-series
+      (-> time-series-data vega/->vg-data vega/line
+          (assoc :width 600)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Plays well with jdbc
