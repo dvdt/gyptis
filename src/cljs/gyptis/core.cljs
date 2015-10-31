@@ -7,7 +7,7 @@
 
 (def ^:dynamic *renderer*
   "either 'svg' or 'canvas'"
-  "canvas")
+  "svg")
 
 (def ^:dynamic *plot-id*
   "either 'svg' or 'canvas'"

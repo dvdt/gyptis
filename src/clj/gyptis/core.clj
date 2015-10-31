@@ -16,8 +16,7 @@
   the same for each subplot."
   [{:keys [scales axes marks legends] [{data :values} & more] :data :as vega-spec}]
   (let [facet-keyed-data (vega/ensure-facet-keys data)]
-    (prn facet-keyed-data)
-    (wrap-dims (vega/facet (update-in vega-spec [:marks 0 :from :data] (constantly nil))
+    (wrap-dims (vega/facet (assoc-in vega-spec [:marks 0 :from :data] nil)
                            facet-keyed-data))))
 
 (defn plot
@@ -33,6 +32,6 @@
        (view/new! :view-name plot-key)
        (alter-var-root #'*current-plot-key* (constantly plot-key)))
      (view/plot! plot-key
-                 (-> vega-spec facet-global))))
+                 (facet-global vega-spec))))
   ([vega-spec]
    (plot vega-spec *current-plot-key*)))

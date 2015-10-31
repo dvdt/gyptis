@@ -109,24 +109,25 @@
   {:pre [(contains? datum *facet-x*) (contains? datum *facet-y*)]}
   (let [facetted-marks (add-facet-axes (->facet-mark inner-spec data)
                                        data)]
-    {:data (concat [{:name *table* :values data}] (rest (:data inner-spec)))
-     :legends (:legends inner-spec)
-     :scales (vec (concat [{:name "facet_x_scale"
-                            :type "ordinal"
-                            :padding 0.15
-                            :range "width"
-                            :domain {:data *table* :field *facet-x*}}
-                           {:name "facet_y_scale"
-                            :type "ordinal"
-                            :padding 0.15
-                            :range "height"
-                            :domain {:data *table* :field *facet-y*}}]
-                          (:scales inner-spec)))
-     :axes [{:type "x" :scale "facet_x_scale" :orient "top" :tickSize 0
-             :properties {:axis {:strokeWidth {:value 0}}}}
-            {:type "y" :scale "facet_y_scale" :orient "right" :tickSize 0
-             :properties {:axis {:strokeWidth {:value 0}}}}]
-     :marks facetted-marks}))
+    (merge (select-keys inner-spec [:width :height :padding])
+           {:data (concat [{:name *table* :values data}] (rest (:data inner-spec)))
+            :legends (:legends inner-spec)
+            :scales (vec (concat [{:name "facet_x_scale"
+                                   :type "ordinal"
+                                   :padding 0.15
+                                   :range "width"
+                                   :domain {:data *table* :field *facet-x*}}
+                                  {:name "facet_y_scale"
+                                   :type "ordinal"
+                                   :padding 0.15
+                                   :range "height"
+                                   :domain {:data *table* :field *facet-y*}}]
+                                 (:scales inner-spec)))
+            :axes [{:type "x" :scale "facet_x_scale" :orient "top" :tickSize 0
+                    :properties {:axis {:strokeWidth {:value 0}}}}
+                   {:type "y" :scale "facet_y_scale" :orient "right" :tickSize 0
+                    :properties {:axis {:strokeWidth {:value 0}}}}]
+            :marks facetted-marks})))
 
 (def top-level
   {:width 800
