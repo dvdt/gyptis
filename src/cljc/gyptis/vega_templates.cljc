@@ -371,3 +371,32 @@
                                  :domain {:data *table*, :field *stroke*},
                                  :range "category20"})
         (assoc :marks [group-mark]))))
+
+
+
+(defn choropleth
+  [[datum & more :as data]]
+  (let [data (map (fn [d] (-> d
+                              (dissoc *geopath*)
+                              (merge (get d *geopath*)))) data)
+        transforms [{:type "geopath" :projection "albersUsa"}]
+        data [{:name *table* :values data
+               }]
+        scales [{:name "fill" :type "quantize"
+                 :domain {:data *table* :field *fill*}
+                 :range ["#f7fcfd","#e5f5f9","#ccece6","#99d8c9","#66c2a4","#41ae76","#238b45","#006d2c","#00441b"]
+                 #_["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6",
+                         "#4292c6", "#2171b5", "#08519c", "#08306b"]}]
+        marks [{:type "path"
+                ;; geotransform in mark so that facetting works?
+                :from {:data *table*
+                       :transform transforms
+                       }
+                :properties
+                {:update {:path {:field "layout_path"}
+                          :fill {:scale "fill" :field *fill*}}
+                 :hover {:fill {:value "red"}}}}]]
+    {:data data
+     :scales scales
+     :marks marks
+     :legends (if (contains? datum *fill*) [{:fill "fill"}] [])}))

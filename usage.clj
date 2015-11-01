@@ -1,78 +1,89 @@
 (ns usage
   (:require [gyptis.core :refer :all]
-            [gyptis.vega-templates :as vega]))
+            [gyptis.view :refer [plot!]]
+            [gyptis.vega-templates :as vt]
+            [gyptis.validate :refer [valid?]]
+            [clojure.pprint :refer [pprint]]
+            [clojure.data.json :as json]))
 
-(def data [{:x "a", :y 5 :facet_y "a" :fill 1}
-           {:x "a", :y 5 :facet_y "a" :fill 2}
-           {:x "b", :y 10 :facet_y "a" :fill 1}
-           {:x "c", :y 2 :facet_y "a" :fill 2}
-           {:x "d", :y 3 :facet_y "c" :fill 2}])
-
+(def bar-data [{:x "a", :y 5 :facet_y "a" :fill 1}
+               {:x "a", :y 5 :facet_y "a" :fill 2}
+               {:x "b", :y 9 :facet_y "a" :fill 1}
+               {:x "c", :y 2 :facet_y "a" :fill 2}
+               {:x "d", :y 3 :facet_y "c" :fill 2}])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Let's make a bar chart
 
-(plot :bar-plot
-      (vega/dodged-bar data))
+(plot (vt/dodged-bar bar-data))
 
 ;; plot every hashmap in `data' as a rectangle. Stacks bars with the same `x' value
-(plot :bar-plot
-      (vega/stacked-bar data))
+(plot (vt/stacked-bar bar-data))
 
 ;; add labels
-(plot :bar-plot
-      (-> data vega/point
+(plot (-> bar-data vt/stacked-bar
           (assoc-in [:axes 0 :title] "letter")
           (assoc-in [:axes 1 :title] "rate")))
 
 ;; add mouse-over interactions
-(plot
- :bar-plot
- (-> (vega/bar data)
-     (assoc-in [:marks 0 :properties :hover]
-               {:fill {:value "red"}})))
+(plot (-> bar-data vt/stacked-bar
+          (assoc-in [:marks 0 :properties :hover]
+                    {:fill {:value "red"}})))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Works on time series.
 
 (def time-series-data
-  [{:x (java.util.Date. "Jan 1, 2015"), :y 4 :stroke "a"}
-   {:x (java.util.Date. "Jan 2, 2015"), :y 0 :stroke "a"}
-   {:x (java.util.Date. "Jan 3, 2015"), :y 1 :stroke "a"}
-   {:x (java.util.Date. "Jan 4, 2015"), :y 3 :stroke "a"}
-   {:x (java.util.Date. "Jan 1, 2015"), :y 3 :stroke "b"}
-   {:x (java.util.Date. "Jan 2, 2015"), :y 10 :stroke "b"}
-   {:x (java.util.Date. "Jan 3, 2015"), :y 9 :stroke "b"}
+  [{:x (java.util.Date. "Jan 1, 2015"), :y 1 :stroke "a"}
+   {:x (java.util.Date. "Jan 2, 2015"), :y 2 :stroke "a"}
+   {:x (java.util.Date. "Jan 3, 2015"), :y 4 :stroke "a"}
+   {:x (java.util.Date. "Jan 4, 2015"), :y 9 :stroke "a"}
+
+   {:x (java.util.Date. "Jan 1, 2015"), :y 2 :stroke "b"}
+   {:x (java.util.Date. "Jan 2, 2015"), :y 3 :stroke "b"}
+   {:x (java.util.Date. "Jan 3, 2015"), :y 4 :stroke "b"}
    {:x (java.util.Date. "Jan 4, 2015"), :y 5 :stroke "b"}])
 
-(plot :time-series
-      (-> time-series-data vega/->vg-data vega/line
-          (assoc :width 400)))
+(plot (-> time-series-data vt/->vg-data vt/line
+          (assoc :width 600)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Plays well with jdbc
+;; Unifying data across multiple data sources is easy with SQL :D
 
-(require '([clojure.java.jdbc :as sql]))
-(require 'gyptis.usage-helpers :as h)
+(require '[clojure.java.jdbc :as sql])
+(require '[usage-helpers :refer [db]])
 
-(def unemployment-rate-by-county-id
-  (sql/query h/db [(str "SELECT id as x,"
-                        "rate as y "
-                        "FROM unemployment"
-                        "ORDER BY y desc"
-                        "LIMIT 20")]))
+;; These examples use an embedded H2 database.
+;; Of course, it's simple to use other db engines.
 
-(plot! :bar-plot (stacked-bar unemployment-rate-by-county-id))
+(sql/query db ["SELECT * FROM unemployment limit 1"])
 
+(plot (-> (sql/query db ["SELECT fips_county as x, unemploy_rate as y
+                          FROM unemployment
+                          ORDER BY unemploy_rate DESC LIMIT 10"])
+          vt/dodged-bar))
+
+(def highest-unemployment-counties
+  (sql/query db
+             ["SELECT CONCAT_WS(', ', fips_codes.gu_name, fips_codes.state_abbrev) as x,
+               unemploy_rate as y
+               FROM fips_codes
+               INNER JOIN unemployment ON (1000*fips_codes.state_fips + fips_codes.county_fips) = unemployment.fips_county
+               WHERE fips_codes.entity_desc='County'
+               ORDER BY y DESC LIMIT 20"]))
+
+;; counties with highest unemployment rate
+(plot (-> highest-unemployment-counties
+          vt/stacked-bar
+          vertical-x-labels))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Let's make a map
 
 (def county-unemployment-geo
-  (sql/query h/db [(str "SELECT us_10m.state as layout_path,"
-                        "rate as fill"
-                        "FROM unemployment"
-                        "WHERE us_10m.state=state")]))
+  (sql/query db [(str "SELECT feature as geopath, unemploy_rate as fill from unemployment
+INNER JOIN us_10m ON us_10m.id=unemployment.fips_county")]
+             :row-fn #(update % :geopath json/read-str)))
 
-(plot! "unemploy-map"
-       (choropleth unemployment-rate-by-county))
+(plot (vt/choropleth county-unemployment-geo))
