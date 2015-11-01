@@ -8,6 +8,7 @@
 (def ^:dynamic *x* :x)
 (def ^:dynamic *y* :y)
 (def ^:dynamic *fill* :fill)
+(def ^:dynamic *stroke* :stroke)
 (def ^:dynamic *size* :size)
 (def ^:dynamic *facet-x* :facet_x)
 (def ^:dynamic *facet-y* :facet_y)
@@ -334,18 +335,39 @@
 
 (defn line
   "line chart"
-  [data]
-  (let [point-spec (point data)
+  [[datum & more :as data]]
+  (let [x-type (guess-scale-type data *x*)
+        x-scale (merge-spec {:name "x" :domain {:data *table* :field *x*} :range "width"}
+                            (case x-type
+                              "ordinal" {:type "ordinal" :points true :padding 1}
+                              "linear" {:type "linear" :nice true :round true}
+                              "time" {:type "time"}))
+        y-type (guess-scale-type data *y*)
+        y-scale (merge-spec {:name "y" :domain {:data *table* :field *y*} :range "height"}
+                            (case y-type
+                              "ordinal" {:type "ordinal" :points true :padding 1}
+                              "linear" {:type "linear" :nice true}
+                              "time" {:type "time"}))
+        stroke-scale {:name "stroke" :domain {:data *table* :field *stroke*}
+                      :type "ordinal" :range "category20"}
+        vg-spec {:scales [x-scale y-scale stroke-scale]
+                 :legends (if (contains? datum *stroke*) [{:fill "stroke"}] [])
+                 :axes [{:type "x", :scale "x"} {:type "y", :scale "y"}]
+                 :data [{:name *table* :values data}]}
         line-mark (-> {:type "line"}
                       (assoc-in [:properties :update]
                                 {:x {:scale "x" :field *x*}
                                  :y {:scale "y" :field *y*}
-                                 :stroke {:scale "fill" :field *fill*}
+                                 :stroke {:scale "stroke" :field *stroke*}
                                  :strokeWidth {:value 2}}))
         group-mark {:type "group"
                     :from {:name *table*
                            :transform [{:type "facet"
-                                        :groupby [*fill*]}]}
+                                        :groupby [*stroke*]}]}
                     :marks [line-mark]}]
-    (-> point-spec
+    (-> vg-spec
+        (update-in [:scales] conj {:name "stroke",
+                                 :type "ordinal",
+                                 :domain {:data *table*, :field *stroke*},
+                                 :range "category20"})
         (assoc :marks [group-mark]))))
