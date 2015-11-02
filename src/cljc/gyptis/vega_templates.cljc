@@ -72,7 +72,7 @@
         unlabelled-facet-pred (str "datum." (name *facet-x*) "!==" first-facet-x
                                    " && datum." (name *facet-y*) "!==" last-facet-y)
         x-label-facet-pred (str "datum." (name *facet-x*) "!==" first-facet-x
-                                " && datum." (name *facet-y*) "!==" last-facet-y)
+                                " && datum." (name *facet-y*) "===" last-facet-y)
         y-label-facet-pred   (str "datum." (name *facet-x*) "===" first-facet-x
                                   " && datum." (name *facet-y*) "!==" last-facet-y)
         xy-label-facet-pred (str "datum." (name *facet-x*) "===" first-facet-x
