@@ -1,32 +1,33 @@
 (ns usage
   (:require [gyptis.core :refer :all]
-            [gyptis.view :refer [plot!]]
-            [gyptis.vega-templates :as vt]
-            [gyptis.validate :refer [valid?]]
-            [clojure.pprint :refer [pprint]]
+            [gyptis.vega-templates :refer [dodged-bar stacked-bar
+                                           point choropleth line]]
             [clojure.data.json :as json]))
 
-(def bar-data [{:x "a", :y 5 :facet_y "a" :fill 1}
-               {:x "a", :y 5 :facet_y "a" :fill 2}
-               {:x "b", :y 9 :facet_y "a" :fill 1}
-               {:x "c", :y 2 :facet_y "a" :fill 2}
-               {:x "d", :y 3 :facet_y "c" :fill 2}])
+(def bar-data [{:x "a", :y  1 :fill 1}
+               {:x "a", :y  1 :fill 2}
+               {:x "b", :y  2 :fill 1}
+               {:x "b", :y  3 :fill 2}
+               {:x "c", :y  5 :fill 1}
+               {:x "c", :y  8 :fill 2}
+               {:x "d", :y 13 :fill 1}
+               {:x "d", :y 21 :fill 2}])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Let's make a bar chart
 
-(plot (vt/dodged-bar bar-data))
+(plot (dodged-bar bar-data))
 
 ;; plot every hashmap in `data' as a rectangle. Stacks bars with the same `x' value
-(plot (vt/stacked-bar bar-data))
+(plot (stacked-bar bar-data))
 
 ;; add labels
-(plot (-> bar-data vt/stacked-bar
+(plot (-> bar-data stacked-bar
           (assoc-in [:axes 0 :title] "letter")
           (assoc-in [:axes 1 :title] "rate")))
 
 ;; add mouse-over interactions
-(plot (-> bar-data vt/stacked-bar
+(plot (-> bar-data stacked-bar
           (assoc-in [:marks 0 :properties :hover]
                     {:fill {:value "red"}})))
 
@@ -44,8 +45,7 @@
    {:x (java.util.Date. "Jan 3, 2015"), :y 4 :stroke "b"}
    {:x (java.util.Date. "Jan 4, 2015"), :y 5 :stroke "b"}])
 
-(plot (-> time-series-data vt/->vg-data vt/line
-          (assoc :width 600)))
+(plot (-> time-series-data line))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Plays well with jdbc
@@ -61,8 +61,9 @@
 
 (plot (-> (sql/query db ["SELECT fips_county as x, unemploy_rate as y
                           FROM unemployment
-                          ORDER BY unemploy_rate DESC LIMIT 10"])
-          vt/dodged-bar))
+                          ORDER BY unemploy_rate DESC LIMIT 20"])
+          stacked-bar
+          vertical-x-labels))
 
 (def highest-unemployment-counties
   (sql/query db
@@ -71,11 +72,11 @@
                FROM fips_codes
                INNER JOIN unemployment ON (1000*fips_codes.state_fips + fips_codes.county_fips) = unemployment.fips_county
                WHERE fips_codes.entity_desc='County'
-               ORDER BY y DESC LIMIT 20"]))
+               ORDER BY y DESC LIMIT 25"]))
 
 ;; counties with highest unemployment rate
 (plot (-> highest-unemployment-counties
-          vt/stacked-bar
+          stacked-bar
           vertical-x-labels))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -83,7 +84,7 @@
 
 (def county-unemployment-geo
   (sql/query db [(str "SELECT feature as geopath, unemploy_rate as fill from unemployment
-INNER JOIN us_10m ON us_10m.id=unemployment.fips_county")]
+                       INNER JOIN us_10m ON us_10m.id=unemployment.fips_county")]
              :row-fn #(update % :geopath json/read-str)))
 
-(plot (vt/choropleth county-unemployment-geo))
+(plot (choropleth county-unemployment-geo))
