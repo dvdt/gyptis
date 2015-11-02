@@ -62,3 +62,11 @@
        java.lang.Object nil)
      :cljs (when (isa? js/Date (type date))
              (.getTime date))))
+
+(defn dedup
+  [xs]
+  (second (reduce (fn [[seen?, deduped] x]
+                    (if (seen? x)
+                      [seen? deduped]
+                      [(conj seen? x) (conj deduped x)]))
+                  [#{} []] xs)))
