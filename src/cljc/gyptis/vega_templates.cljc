@@ -13,6 +13,8 @@
 (def ^:dynamic *facet-x* :facet_x)
 (def ^:dynamic *facet-y* :facet_y)
 
+(def ^:dynamic *geopath* :geopath)
+
 (defn- first-non-nil
   [data field]
   (->> data
@@ -21,7 +23,7 @@
        first))
 
 (defn guess-scale-type
-  "Returns linear or ordinal or time."
+  "Returns \"linear\" or \"ordinal\" or \"time\" or nil"
   [data field]
   (if-let [meta-type (-> data meta (get field))]
     ;; first check the metadata on data for scale-type info
@@ -43,6 +45,15 @@
       (assoc-in [:properties :labels :text :value] "")
       (assoc-in [:title] "")))
 
+(defn vertical-x-labels
+  "Returns a vega.js spec with x-axis labels oriented vertically."
+  [spec]
+  (-> spec
+      (assoc-in [:axes 0 :properties :labels :angle :value] 270)
+      (assoc-in [:axes 0 :properties :labels :align :value] "right")
+      (assoc-in [:axes 0 :properties :labels :dx :value] -5)
+      (assoc-in [:axes 0 :properties :labels :dy :value] -5)))
+
 (defn ensure-facet-keys
   [data]
   (map (fn [datum]
@@ -50,7 +61,7 @@
           (u/ensure-key *facet-x* "")
           (u/ensure-key *facet-y* ""))) data))
 
-(defn ->facet-mark
+(defn- ->facet-mark
   [inner-spec data]
   {:type "group"
    :from {:data *table*
@@ -63,7 +74,7 @@
    :scales (:scales inner-spec)
    :axes (:axes inner-spec)})
 
-(defn add-facet-axes
+(defn- add-facet-axes
   "Returns a vector of facetted group marks with axes legends in the
   bottom row and first column"
   [facet-mark [datum & more :as data]]
@@ -138,7 +149,12 @@
    :scales []
    :axes []
    :marks []
-   :legends []})
+   :legends []
+   :signals []})
+
+(defn wrap-dims
+  [spec]
+  (merge-spec top-level spec))
 
 (defn assoc-hover
   [vg hover-spec]
@@ -166,7 +182,9 @@
    :scales [{:name "x",
              :type "ordinal",
              :range "width",
-             :domain {:data *table*, :field *x*}}
+             ;; manually set domain because vega.js will re-order
+             ;; the domain if we try to pass in the field as in y below
+             :domain (u/dedup (map #(get % *x*) data))}
             {:name "y",
              :type "linear",
              :range "height",
@@ -184,7 +202,7 @@
        :y2 {:scale "y", :value 0}
        :fill {:value "steelblue"}}}}]})
 
-(def stack-transform
+(defn stack-transform []
   {:type "stack"
    :groupby [*x*]
    :field *y*})
@@ -193,7 +211,8 @@
   "Stacks bars on the `fill' field"
   [[datum & more :as data]]
   (let [mark {:type "rect"
-              :from {:transform [stack-transform]}
+              :from {:data *table*
+                     :transform [(stack-transform)]}
               :properties {:update {:x {:scale "x" :field *x*}
                                     :width {:scale "x" :band true :offset -1}
                                     :y {:scale "y" :field "layout_start"}
@@ -209,7 +228,7 @@
                  :scales
                  ^:replace [{:name "x",
                              :type "ordinal",
-                             :domain {:data *table*, :field *x*},
+                             :domain (u/dedup (map #(get % *x*) data)),
                              :range "width"}
                             {:name "y",
                              :type "linear",
@@ -226,12 +245,13 @@
                  :legends (if (contains? datum *fill*) [{:fill "fill"}] [])
                  :marks ^:replace [mark]})))
 
-(defn dodged-bars-mark
+(defn- dodged-bars-mark
   "Dodges bars on the fill. Assumes that a x, y and fill scales have been previously defined."
   []
   {:type "group",
    :from
-   {:transform [{:type "facet", :groupby [*x*]}]},
+   {:data *table*
+    :transform [{:type "facet", :groupby [*x*]}]},
    :scales
    [{:name "x-dodge",
      :type "ordinal",
@@ -262,7 +282,7 @@
                                                 :type "ordinal",
                                                 :padding 0.2,
                                                 :range "width",
-                                                :domain {:data *table*, :field *x*}}
+                                                :domain (u/dedup (map #(get % *x*) data))}
                                                {:name "y",
                                                 :type "linear",
                                                 :range "height",
@@ -384,14 +404,12 @@
                }]
         scales [{:name "fill" :type "quantize"
                  :domain {:data *table* :field *fill*}
-                 :range ["#f7fcfd","#e5f5f9","#ccece6","#99d8c9","#66c2a4","#41ae76","#238b45","#006d2c","#00441b"]
-                 #_["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6",
+                 :range ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6",
                          "#4292c6", "#2171b5", "#08519c", "#08306b"]}]
         marks [{:type "path"
                 ;; geotransform in mark so that facetting works?
                 :from {:data *table*
-                       :transform transforms
-                       }
+                       :transform transforms}
                 :properties
                 {:update {:path {:field "layout_path"}
                           :fill {:scale "fill" :field *fill*}}
@@ -399,4 +417,4 @@
     {:data data
      :scales scales
      :marks marks
-     :legends (if (contains? datum *fill*) [{:fill "fill"}] [])}))
+     :legends []}))
