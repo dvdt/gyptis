@@ -1,5 +1,5 @@
 (defproject gyptis "0.1.0-SNAPSHOT"
-  :description "Data visualization for clojure"
+  :description "A library for generating and viewing vega.js plots"
   :url ""
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
@@ -23,13 +23,14 @@
                  [com.h2database/h2 "1.4.190"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [clj-time "0.11.0"]
+
                  [com.github.fge/json-schema-validator "2.2.6"]
                  [org.clojure/clojurescript "1.7.145" :scope "provided"]
                  [com.cognitect/transit-cljs "0.8.225"]
                  [com.taoensso/sente "1.6.0"]]
 
   :plugins [[lein-environ "1.0.1"]
-            [lein-asset-minifier "0.2.2"]]
+            [lein-codox "0.9.0"]]
 
   :ring {:uberwar-name "gyptis.war"}
 

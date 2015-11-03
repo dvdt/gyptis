@@ -23,7 +23,7 @@
        first))
 
 (defn guess-scale-type
-  "Returns \"linear\" or \"ordinal\" or \"time\" or nil"
+  "Returns \"linear\" or \"ordinal\" or \"time\" or \"geojson\" or nil"
   [data field]
   (if-let [meta-type (-> data meta (get field))]
     ;; first check the metadata on data for scale-type info
@@ -31,6 +31,7 @@
     ;; otherwise try to guess
     (when-let [d (first-non-nil data field)]
       (cond
+        (and (map? d) (= (get d "type") "Feature")) "geojson"
         (u/date? d) "time"
         (number? d) "linear"
         (or (string? d) (nil? d)) "ordinal"
@@ -166,7 +167,11 @@
     "time" (let [millis-time (map #(update % field u/->epoch-millis) data)]
              (vary-meta millis-time assoc field "time"))
     "linear" (vary-meta data assoc field "linear")
-    "ordinal" (vary-meta data assoc field "ordinal")))
+    "ordinal" (vary-meta data assoc field "ordinal")
+    "geojson"  (let [raise-geopath (fn [datum] (-> datum
+                                               (dissoc *geopath*)
+                                               (merge (get datum *geopath*))))]
+                 (vary-meta (map raise-geopath data) assoc field "geojson"))))
 
 (defn ->vg-data
   "Converts class types into data that vega.js understands."
@@ -391,13 +396,9 @@
 
 
 (defn choropleth
-  [[datum & more :as data]]
-  (let [data (map (fn [d] (-> d
-                              (dissoc *geopath*)
-                              (merge (get d *geopath*)))) data)
-        transforms [{:type "geopath" :projection "albersUsa"}]
-        data [{:name *table* :values data
-               }]
+  [[datum & more :as data] geopath-transform]
+  (let [transforms [geopath-transform]
+        data [{:name *table* :values data}]
         scales [{:name "fill" :type "quantize"
                  :domain {:data *table* :field *fill*}
                  :range ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6",

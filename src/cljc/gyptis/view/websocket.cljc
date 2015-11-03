@@ -1,4 +1,4 @@
-(ns gyptis.websocket
+(ns gyptis.view.websocket
   "Initializes websocket channels for both server and client."
   #?(:clj (:require [taoensso.sente :as sente]
                     [taoensso.sente.packers.transit :as sente-transit]

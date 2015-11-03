@@ -1,7 +1,6 @@
 (ns usage
   (:require [gyptis.core :refer :all]
-            [gyptis.vega-templates :refer [dodged-bar stacked-bar
-                                           point choropleth line]]
+            [gyptis.vega-templates :refer [vertical-x-labels] :as vt]
             [clojure.data.json :as json]))
 
 (def bar-data [{:x "a", :y  1 :fill 1}
@@ -21,6 +20,7 @@
 ;; plot every hashmap in `data' as a rectangle. Stacks bars with the same `x' value
 (plot (stacked-bar bar-data))
 
+
 ;; add labels
 (plot (-> bar-data stacked-bar
           (assoc-in [:axes 0 :title] "letter")
@@ -28,8 +28,14 @@
 
 ;; add mouse-over interactions
 (plot (-> bar-data stacked-bar
-          (assoc-in [:marks 0 :properties :hover]
-                    {:fill {:value "red"}})))
+          (assoc-in [:marks 0 :properties :hover] {:fill {:value "red"}})))
+
+;; Subplots are easy
+(binding [vt/*facet-x* :fill]
+  (-> bar-data
+      stacked-bar
+      facet-global
+      plot))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Works on time series.
@@ -45,7 +51,9 @@
    {:x (java.util.Date. "Jan 3, 2015"), :y 4 :stroke "b"}
    {:x (java.util.Date. "Jan 4, 2015"), :y 5 :stroke "b"}])
 
-(plot (-> time-series-data line))
+(-> time-series-data
+    line
+    plot)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Plays well with jdbc
@@ -83,8 +91,11 @@
 ;; Let's make a map
 
 (def county-unemployment-geo
-  (sql/query db [(str "SELECT feature as geopath, unemploy_rate as fill from unemployment
-                       INNER JOIN us_10m ON us_10m.id=unemployment.fips_county")]
+  (sql/query db [(str "SELECT feature as geopath, unemploy_rate as fill "
+                      "FROM unemployment "
+                      "INNER JOIN us_10m ON us_10m.id=unemployment.fips_county ")]
              :row-fn #(update % :geopath json/read-str)))
 
-(plot (choropleth county-unemployment-geo))
+(-> county-unemployment-geo
+    (choropleth :projection "albersUsa")
+    plot)
