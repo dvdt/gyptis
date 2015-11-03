@@ -381,15 +381,11 @@
                                  :stroke {:scale "stroke" :field *stroke*}
                                  :strokeWidth {:value 2}}))
         group-mark {:type "group"
-                    :from {:name *table*
+                    :from {:data *table*
                            :transform [{:type "facet"
                                         :groupby [*stroke*]}]}
                     :marks [line-mark]}]
     (-> vg-spec
-        (update-in [:scales] conj {:name "stroke",
-                                 :type "ordinal",
-                                 :domain {:data *table*, :field *stroke*},
-                                 :range "category20"})
         (assoc :marks [group-mark]))))
 
 
