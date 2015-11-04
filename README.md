@@ -1,20 +1,41 @@
-# Gyptis, a clojure/script data visualization library for the web, based on vega.js
+Gyptis, a clojure/script data visualization library for the web, based on vega.js
+===
 
-## Usage
-```{clojure}
-(use 'gyptis.core)
+**[Vega](https://github.com/vega/vega)** is a javascript library for
+  creating data visualizations through a declarative JSON format.
 
-;; Opens a browser tab. Plots will be displayed here
-(new-window! "figure 1")
+**Gyptis** helps you produce, modify and render Vega JSON specs. It
+  supports common visualization designs like bar and line charts, and
+  even choropleth maps.
 
-
-(def figure-1
-    (point [{:x :a, :y 0.08}
-{:x :a, :y 0.08}]
-(plot "figure 1" )
+Leiningen coordinates
+---
+```clojure
+[gyptis "0.1.0"]
 ```
 
-## How does it work
+Usage
+---
+[![IMAGE ALT TEXT HERE](http://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg)](http://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID_HERE)
 
-# compile
-TIMBRE_LEVEL=':warn' lein with-profile prod do clean, cljsbuild once app
+Also try looking at [examples/usage](examples/usage)
+
+```clojure
+(use 'gyptis.core)
+(require '[gyptis.view.server :refer [plot!]])
+
+(def fibonacci [{:x "a", :y  1 :fill 1}
+                {:x "a", :y  1 :fill 2}
+                {:x "b", :y  2 :fill 1}
+                {:x "b", :y  3 :fill 2}
+                {:x "c", :y  5 :fill 1}
+                {:x "c", :y  8 :fill 2}
+                {:x "d", :y 13 :fill 1}
+                {:x "d", :y 21 :fill 2}])
+
+(plot! (stacked-bar fibonacci))
+```
+
+Documentation
+---
+- [API Docs](link to codox)
