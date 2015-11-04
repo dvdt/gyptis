@@ -1,8 +1,8 @@
 (ns gyptis.view.server
+  "Web server for pushing (clojure) vega.js plot specifications to a browser client for rendering."
   (:require [clojure.java.browse :as browse]
-            [taoensso.timbre    :as timbre :refer (tracef debugf infof warnf errorf)]
+            [taoensso.timbre :as timbre :refer (tracef debugf infof warnf errorf)]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
-            [prone.middleware :refer [wrap-exceptions]]
             [ring.middleware.reload :refer [wrap-reload]]
             [gyptis.view.websocket :as ws]
             [hiccup.core :refer [html]]
@@ -11,11 +11,10 @@
             [org.httpkit.server :as http-kit]
             [compojure.core :refer [GET POST defroutes]]
             [compojure.route :as routes]
-            [clojure.core.async :as async  :refer [<! <!! >! >!! put! chan go go-loop]]
-            [ring.util.codec :refer [url-encode]]))
+            [clojure.core.async :as async  :refer [<! <!! >! >!! put! chan go go-loop]]))
 
+(timbre/set-level!)
 (defonce web-server_ (atom nil))
-(def ^:dynamic *current-plot-key* :default)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Start web server
@@ -33,9 +32,8 @@
 (declare app)
 (defn -main [& args]
   (ws/start!)
-  (let [port (Integer/parseInt (or (env :port) "3000"))]
+  (let [port (Integer/parseInt (or (env :port) "3211"))]
     (reset! web-server_  (start-web-server!* #'app port))))
-
 
 (defn new!
   "Opens a new browser tab and returns that tab's uid.
@@ -63,24 +61,6 @@
   [ch vega-spec]
   (ws/chsk-send! ch [:gyptis/plot vega-spec]))
 
-(defn plot!
-  "Plots the given vega-spec on the browser client connected by
-  the plot-key. If no client exists, a new browser tab is opened."
-  ([plot-key vega-spec]
-   (let [plot-key (-> plot-key
-                      name
-                      url-encode)]
-     (when-not @web-server_
-       (-main))
-     (when-not (get-in @ws/connected-uids [:any plot-key])
-       (new! :view-name plot-key)
-       (alter-var-root #'*current-plot-key* (constantly plot-key)))
-     (plot!* plot-key vega-spec)))
-  ([vega-spec]
-   (plot! *current-plot-key* vega-spec)))
-
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Routes
 
@@ -92,30 +72,25 @@
      [:meta {:charset "utf-8"}]
      [:meta {:name "viewport"
              :content "width=device-width, initial-scale=1"}]
+
      (include-css (if (env :dev) "/css/site.css" "/css/site.min.css"))
-     (include-css (if (env :dev) "/vendor/bootstrap-theme.css" "/vendor/bootstrap-theme.min.css"))
-     (include-css (if (env :dev) "/vendor/bootstrap.css" "/vendor/bootstrap.min.css"))
      (include-js "/vendor/d3.min.js")
-     (include-js "http://d3js.org/d3.geo.projection.v0.min.js")
+     (include-js "/vendor/d3.geo.projection.v0.min.js")
      (include-js (if (env :dev) "/vendor/vega.js" "/vendor/vega.min.js"))]
     [:body
-     [:div {:class "container"}
-      [:div {:class "row"}
-       [:div {:class "col-lg-12"}
-        (if (env :dev)
-          [:div#app
-           [:h3 "ClojureScript has not been compiled!"]
-           [:p "please run "
-            [:b "lein figwheel"]
-            " in order to start the compiler"]]
-          [:div#app
-           [:h3 "Loading..."]])]]]
-     (include-js "/js/app.js")]]))
+     (if (env :dev)
+       [:div#app
+        [:h3 "ClojureScript has not been compiled!"]
+        [:p "please run "
+         [:b "lein figwheel"]
+         " in order to start the compiler"]]
+       [:div#app
+        [:h3 "Loading..."]])
+     (if (env :dev)
+       (include-js "/js/app.js")
+       (include-js "/js/gyptis.js"))]]))
 
 (defroutes routes
-  (GET "/" []
-
-       (html [:html [:body "no non no"]]))
   (GET  ws/*endpoint* req (ws/ring-ajax-get-or-ws-handshake req))
   (POST ws/*endpoint* req (ws/ring-ajax-post req))
   (GET "/views/:uid"
@@ -126,4 +101,4 @@
 
 (def app
   (let [handler (wrap-defaults #'routes site-defaults)]
-    (if (env :dev) (-> handler wrap-exceptions wrap-reload) handler)))
+    handler))

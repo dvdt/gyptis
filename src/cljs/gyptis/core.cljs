@@ -1,6 +1,5 @@
 (ns gyptis.core
     (:require [reagent.core :as reagent]
-              [reagent.session :as session]
               [gyptis.view.websocket :as ws]
               [gyptis.vega-templates :as vega]
               [taoensso.timbre :as timbre :refer-macros (trace tracef debugf infof warnf errorf)]))
