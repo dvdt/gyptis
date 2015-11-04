@@ -12,7 +12,7 @@
             [compojure.route :as routes]
             [clojure.core.async :as async  :refer [<! <!! >! >!! put! chan go go-loop]]))
 
-(timbre/set-level!)
+(timbre/set-level! :info)
 (defonce web-server_ (atom nil))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -30,7 +30,7 @@
 
 (declare app)
 
-(defn start! [& {port :port :or {:port 3211}}]
+(defn start! [& {port :port :or {port 3211}}]
   (ws/start!)
   (reset! web-server_  (start-web-server!* #'app port)))
 

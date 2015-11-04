@@ -1,5 +1,5 @@
 (ns gyptis.view
-  (:require [gyptis.view.server :refer [plot!* new! -main web-server_]]
+  (:require [gyptis.view.server :refer [plot!* new! start! web-server_]]
             [gyptis.view.websocket :as ws]
             [ring.util.codec :refer [url-encode]]))
 
@@ -14,7 +14,7 @@
                       name
                       url-encode)]
      (when-not @web-server_
-       (-main))
+       (start!))
      (when-not (get-in @ws/connected-uids [:any plot-key])
        (new! :view-name plot-key)
        (alter-var-root #'*current-plot-key* (constantly plot-key)))
