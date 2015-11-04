@@ -56,3 +56,26 @@
       (vt/->vg-data $)
       (vt/choropleth $ geotransform)
       (merge vt/top-level $))))
+
+(defn title
+  "Adds data and a text mark to the given spec to display the title-text."
+  [spec title-text]
+  (let [not-title (partial filter #(not= "title-text" (:name %)))
+        title-free-spec (-> spec
+                            (update :data (comp vec not-title))
+                            (update :marks (comp vec not-title)))]
+    (-> title-free-spec
+        (update-in [:data] conj {:name "title-text" :values [{:a "a"}]})
+        (update-in [:marks] conj
+                   {:type "text"
+                    :name "title-text"
+                    :from {:data "title-text"}
+                    :properties {:update
+                                 {:text {:value title-text}
+                                  :fill {:value "#000"}
+                                  :x {:value (* -1 (get-in vt/top-level [:padding :left]))}
+                                  :y {:value (* -1 (get-in vt/top-level [:padding :top]))}
+                                  :align {:value "left"}
+                                  :baseline {:value "top"}
+                                  :fontWeight {:value "bold"}
+                                  :fontSize {:value "16"}}}}))))
