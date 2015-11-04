@@ -1,9 +1,7 @@
 (ns gyptis.vega-templates
-  "Helper functions that return vega.js plot declarations"
+  "Helper functions that produce and manipulate vega.js plot declarations."
   (:require [gyptis.util :refer [merge-spec] :as u]))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
 (def ^:dynamic *table* "table")
 (def ^:dynamic *x* :x)
 (def ^:dynamic *y* :y)
@@ -12,8 +10,18 @@
 (def ^:dynamic *size* :size)
 (def ^:dynamic *facet-x* :facet_x)
 (def ^:dynamic *facet-y* :facet_y)
-
 (def ^:dynamic *geopath* :geopath)
+
+(def ^:dynamic top-level
+  {:width 600
+   :height 600
+   :padding {:top 50, :left 100, :bottom 100, :right 50}
+   :data []
+   :scales []
+   :axes []
+   :marks []
+   :legends []
+   :signals []})
 
 (defn- first-non-nil
   [data field]
@@ -23,7 +31,7 @@
        first))
 
 (defn guess-scale-type
-  "Returns \"linear\" or \"ordinal\" or \"time\" or \"geojson\" or nil"
+  "Returns \"linear\" or \"ordinal\" or \"time\" or \"geojson\" or nil."
   [data field]
   (if-let [meta-type (-> data meta (get field))]
     ;; first check the metadata on data for scale-type info
@@ -116,7 +124,7 @@
     [unlabelled-facet-mark x-labelled-facet-mark y-labelled-facet-mark xy-labelled-facet-mark]))
 
 (defn facet
-  "Returns a vega spec with a facetted layout based on the *facet-x*
+  "Takes a vega spec and produces a vega spec with a facetted layout based on the *facet-x*
   and *facet-y* fields."
   [inner-spec [datum & more :as data]]
   {:pre [(contains? datum *facet-x*) (contains? datum *facet-y*)]}
@@ -142,20 +150,7 @@
                     :properties {:axis {:strokeWidth {:value 0}}}}]
             :marks facetted-marks})))
 
-(def top-level
-  {:width 800
-   :height 600
-   :padding {:top 100, :left 100, :bottom 100, :right 200}
-   :data []
-   :scales []
-   :axes []
-   :marks []
-   :legends []
-   :signals []})
 
-(defn wrap-dims
-  [spec]
-  (merge-spec top-level spec))
 
 (defn assoc-hover
   [vg hover-spec]
@@ -170,11 +165,12 @@
     "ordinal" (vary-meta data assoc field "ordinal")
     "geojson"  (let [raise-geopath (fn [datum] (-> datum
                                                (dissoc *geopath*)
-                                               (merge (get datum *geopath*))))]
-                 (vary-meta (map raise-geopath data) assoc field "geojson"))))
+                                               (merge (get datum *geopath*))))
+                     flattened-data (map raise-geopath data)]
+                 (vary-meta flattened-data assoc field "geojson"))))
 
 (defn ->vg-data
-  "Converts class types into data that vega.js understands."
+  "Converts objects like Date into data that vega.js understands."
   [data]
   (let [fields (-> data first keys)]
     (reduce (fn [acc, field]
@@ -401,8 +397,8 @@
         data [{:name *table* :values data}]
         scales [{:name "fill" :type "quantize"
                  :domain {:data *table* :field *fill*}
-                 :range ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6",
-                         "#4292c6", "#2171b5", "#08519c", "#08306b"]}]
+                 :range ["#fff7ec","#fee8c8","#fdd49e","#fdbb84","#fc8d59",
+                         "#ef6548","#d7301f","#b30000","#7f0000"]}]
         marks [{:type "path"
                 ;; geotransform in mark so that facetting works?
                 :from {:data *table*
@@ -410,8 +406,8 @@
                 :properties
                 {:update {:path {:field "layout_path"}
                           :fill {:scale "fill" :field *fill*}}
-                 :hover {:fill {:value "red"}}}}]]
+                 :hover {:fill {:value "steelblue"}}}}]]
     {:data data
      :scales scales
      :marks marks
-     :legends []}))
+     :legends [{:fill "fill"}]}))
