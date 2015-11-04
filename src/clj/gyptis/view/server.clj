@@ -7,7 +7,6 @@
             [gyptis.view.websocket :as ws]
             [hiccup.core :refer [html]]
             [hiccup.page :refer [include-css include-js]]
-            [environ.core :refer [env]]
             [org.httpkit.server :as http-kit]
             [compojure.core :refer [GET POST defroutes]]
             [compojure.route :as routes]
@@ -23,17 +22,17 @@
 
 (defn start-web-server!* [ring-handler port]
   (stop-web-server!)
-  (println "Starting http-kit...")
+  (infof "Starting http-kit...")
   (let [http-kit-stop-fn (http-kit/run-server ring-handler {:port port})]
     {:server  nil ; http-kit doesn't expose this
      :port    (:local-port (meta http-kit-stop-fn))
      :stop-fn (fn [] (http-kit-stop-fn :timeout 100))}))
 
 (declare app)
-(defn -main [& args]
+
+(defn start! [& {port :port :or {:port 3211}}]
   (ws/start!)
-  (let [port (Integer/parseInt (or (env :port) "3211"))]
-    (reset! web-server_  (start-web-server!* #'app port))))
+  (reset! web-server_  (start-web-server!* #'app port)))
 
 (defn new!
   "Opens a new browser tab and returns that tab's uid.
@@ -73,22 +72,14 @@
      [:meta {:name "viewport"
              :content "width=device-width, initial-scale=1"}]
 
-     (include-css (if (env :dev) "/css/site.css" "/css/site.min.css"))
+     (include-css "/css/site.css")
      (include-js "/vendor/d3.min.js")
      (include-js "/vendor/d3.geo.projection.v0.min.js")
-     (include-js (if (env :dev) "/vendor/vega.js" "/vendor/vega.min.js"))]
+     (include-js "/vendor/vega.js")]
     [:body
-     (if (env :dev)
-       [:div#app
-        [:h3 "ClojureScript has not been compiled!"]
-        [:p "please run "
-         [:b "lein figwheel"]
-         " in order to start the compiler"]]
-       [:div#app
-        [:h3 "Loading..."]])
-     (if (env :dev)
-       (include-js "/js/app.js")
-       (include-js "/js/gyptis.js"))]]))
+     [:div#app
+      [:h3 "Loading..."]]
+     (include-js "/js/gyptis.js")]]))
 
 (defroutes routes
   (GET  ws/*endpoint* req (ws/ring-ajax-get-or-ws-handshake req))

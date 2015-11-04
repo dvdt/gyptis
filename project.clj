@@ -13,15 +13,13 @@
                  [com.taoensso/timbre "4.1.4"]
                  [compojure "1.4.0"]
                  [hiccup "1.0.5"]
-                 [environ "1.0.1"]
                  [http-kit "2.1.19"]
                  [com.cognitect/transit-clj "0.8.285"]
                  [clj-time "0.11.0"]
                  [com.cognitect/transit-cljs "0.8.225"]
                  [com.taoensso/sente "1.6.0"]]
 
-  :plugins [[lein-environ "1.0.1"]
-            [lein-codox "0.9.0"]]
+  :plugins [[lein-codox "0.9.0"]]
 
   :min-lein-version "2.5.0"
 
@@ -42,7 +40,6 @@
                                   [com.cemerick/piggieback "0.1.5"]
                                   [pjstadig/humane-test-output "0.7.0"]]
 
-                   :source-paths ["env/dev/clj" "examples"]
                    :plugins [[lein-figwheel "0.3.9" :exclusions [[org.clojure/clojure]
                                                                  [org.clojure/core.async]
                                                                  [com.google.javascript/closure-compiler]
@@ -61,18 +58,13 @@
                                                  "refactor-nrepl.middleware/wrap-refactor"]
                               :css-dirs ["resources/public/css"]}
 
-                   :env {:dev true}
-
                    :cljsbuild {:builds {:app {:source-paths ["env/dev/cljs"]
                                               :compiler {:main "gyptis.dev"
                                                          :source-map true}}}}}
 
-             :uberjar {:env {:production true}}
-
              ;; For cljs compilation
              ;; TIMBRE_LEVEL=':warn' lein with-profile prod do clean, cljsbuild once app
-             :prod {:env {:production true}
-                    :clean-targets ^{:protect false} [:target-path
+             :prod {:clean-targets ^{:protect false} [:target-path
                                                       [:cljsbuild :builds :app :compiler :output-dir]
                                                       [:cljsbuild :builds :app :compiler :output-to]]
                     :omit-source true
