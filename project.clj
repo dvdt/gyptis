@@ -5,59 +5,35 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies [[org.clojure/clojure "1.7.0"]
-                 [ring-server "0.4.0"]
+                 [org.clojure/clojurescript "1.7.145" :scope "provided"]
+                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [reagent "0.5.1"]
-                 [reagent-forms "0.5.12"]
-                 [reagent-utils "0.1.5"]
                  [ring "1.4.0"]
                  [ring/ring-defaults "0.1.5"]
-                 [prone "0.8.2"]
                  [com.taoensso/timbre "4.1.4"]
                  [compojure "1.4.0"]
                  [hiccup "1.0.5"]
                  [environ "1.0.1"]
-
                  [http-kit "2.1.19"]
-                 [org.clojure/java.jdbc "0.4.2"]
                  [com.cognitect/transit-clj "0.8.285"]
-                 [com.h2database/h2 "1.4.190"]
-                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [clj-time "0.11.0"]
-
-                 [com.github.fge/json-schema-validator "2.2.6"]
-                 [org.clojure/clojurescript "1.7.145" :scope "provided"]
                  [com.cognitect/transit-cljs "0.8.225"]
                  [com.taoensso/sente "1.6.0"]]
 
   :plugins [[lein-environ "1.0.1"]
             [lein-codox "0.9.0"]]
 
-  :ring {:uberwar-name "gyptis.war"}
-
   :min-lein-version "2.5.0"
 
-  :uberjar-name "gyptis.jar"
-
-  :clean-targets ^{:protect false} [:target-path
-                                    [:cljsbuild :builds :app :compiler :output-dir]
-                                    [:cljsbuild :builds :app :compiler :output-to]]
-
   :source-paths ["src/clj" "src/cljc"]
-
-  :minify-assets
-  {:assets
-    {"resources/public/css/site.min.css" "resources/public/css/site.css"}}
-
   :cljsbuild {:builds {:app {:source-paths ["src/cljs" "src/cljc"]
-                             :compiler {:output-to     "resources/public/js/app.js"
+                             :compiler {:output-to     "resources/public/js/gyptis.js"
                                         :output-dir    "resources/public/js/out"
                                         :asset-path   "/js/out"
                                         :optimizations :none
                                         :pretty-print  true}}}}
 
-  :profiles {:dev {:dependencies [[ring/ring-mock "0.3.0"]
-                                  [ring/ring-devel "1.4.0"]
-                                  [lein-figwheel "0.3.9" :exclusions [[org.clojure/clojure]
+  :profiles {:dev {:dependencies [[lein-figwheel "0.3.9" :exclusions [[org.clojure/clojure]
                                                                       [org.clojure/core.async]
                                                                       [com.google.javascript/closure-compiler]
                                                                       [com.google.javascript/closure-compiler-externs]
@@ -66,7 +42,7 @@
                                   [com.cemerick/piggieback "0.1.5"]
                                   [pjstadig/humane-test-output "0.7.0"]]
 
-                   :source-paths ["env/dev/clj"]
+                   :source-paths ["env/dev/clj" "examples"]
                    :plugins [[lein-figwheel "0.3.9" :exclusions [[org.clojure/clojure]
                                                                  [org.clojure/core.async]
                                                                  [com.google.javascript/closure-compiler]
@@ -82,8 +58,7 @@
                    :figwheel {:nrepl-port 7002
                               :nrepl-middleware ["cemerick.piggieback/wrap-cljs-repl"
                                                  "cider.nrepl/cider-middleware"
-                                                 "refactor-nrepl.middleware/wrap-refactor"
-                                                 ]
+                                                 "refactor-nrepl.middleware/wrap-refactor"]
                               :css-dirs ["resources/public/css"]}
 
                    :env {:dev true}
@@ -92,18 +67,14 @@
                                               :compiler {:main "gyptis.dev"
                                                          :source-map true}}}}}
 
-             :uberjar {:hooks [leiningen.cljsbuild minify-assets.plugin/hooks]
-                       :env {:production true}
-                       :aot :all
-                       :omit-source true
-                       :cljsbuild {:jar true
-                                   :builds {:app
-                                             {:source-paths ["env/prod/cljs"]
-                                              :compiler
-                                              {:optimizations :advanced
-                                               :pretty-print false}}}}}
+             :uberjar {:env {:production true}}
+
+             ;; For cljs compilation
+             ;; TIMBRE_LEVEL=':warn' lein with-profile prod do clean, cljsbuild once app
              :prod {:env {:production true}
-                    :aot :all
+                    :clean-targets ^{:protect false} [:target-path
+                                                      [:cljsbuild :builds :app :compiler :output-dir]
+                                                      [:cljsbuild :builds :app :compiler :output-to]]
                     :omit-source true
                     :cljsbuild {:builds {:app
                                          {:source-paths ["env/prod/cljs"]
