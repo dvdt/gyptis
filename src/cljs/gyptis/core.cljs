@@ -1,25 +1,31 @@
 (ns gyptis.core
     (:require [reagent.core :as reagent]
               [reagent.session :as session]
-              [gyptis.websocket :as ws]
+              [gyptis.view.websocket :as ws]
               [gyptis.vega-templates :as vega]
               [taoensso.timbre :as timbre :refer-macros (trace tracef debugf infof warnf errorf)]))
+
+
+;; holds the vg.View instance and vega-spec
+;; see: https://github.com/vega/vega/wiki/Runtime#view-component-api
+(defonce *state* (reagent/atom {:view nil :spec nil}))
+
+(defn ^:export getState []
+  (:view @*state*))
 
 (def ^:dynamic *renderer*
   "either 'svg' or 'canvas'"
   "canvas")
 
-(def ^:dynamic *plot-id*
-  "either 'svg' or 'canvas'"
-  "gyptis-plot")
-
 (defn swap-plot!
-  [vega-spec div-id]
+  [vega-spec div-id plot-cursor]
   (let [spec (clj->js vega-spec)
         callback
         (fn [chart]
-          (.update (chart #js {:el (str "#" div-id)
-                               :renderer *renderer*}))
+          (let [view (chart #js {:el (str "#" div-id)
+                                 :renderer *renderer*})]
+            (swap! plot-cursor assoc :view view)
+            (.update view))
           (debugf "finished updating vega chart id=%s" div-id))]
     (js/vg.parse.spec spec callback)))
 
@@ -27,33 +33,31 @@
 ;; Components
 
 (defn plot
-  [vega-spec div-id]
-  (reagent/create-class
-   {:display-name "plot-component"
-    :component-did-mount
-    (fn []
-      (swap-plot! vega-spec div-id)
-      (debugf "did-mount"))
-    :reagent-render
-    (fn []
-      [:div {:id div-id}])}))
+  [div-id plot-cursor]
+  (let [current-spec (atom nil)]
+    (reagent/create-class
+     {:display-name "plot-component"
+      :reagent-render
+      (fn []
+        (when-let [new-spec (:spec @plot-cursor)]
+          (when (not= new-spec @current-spec)
+            (swap! current-spec (constantly new-spec))
+            (swap-plot! new-spec div-id plot-cursor)))
+        [:div {:id div-id}])})))
 
 (defn root []
   [:div
-   [plot {} *plot-id*]])
+   [plot "gyptis-plot" *state*]])
 
 ;; -------------------------
 ;; Initialize app
 (defn mount-root []
-  (ws/start!)
   (reagent/render [root] (.getElementById js/document "app")))
 
 (defn init! []
+  (ws/start!)
   (mount-root))
-
-(defmethod ws/gyptis-handler :gyptis/clear
-  [{:as ev-msg :keys [?data]}])
 
 (defmethod ws/gyptis-handler :gyptis/plot
   [[event vega-spec]]
-  (swap-plot! vega-spec *plot-id*))
+  (swap! *state* assoc :spec vega-spec))
