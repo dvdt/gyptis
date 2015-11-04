@@ -30,7 +30,7 @@
            (title "Fibonacci: F(2)=1, F(3)=2, F(4)=3, F(5)=5, F(6)=8")))
 
 ;; add mouse-over interactions
-(plot! (-> *1
+(plot! (-> *1 ; `plot!' returns the generated spec which the REPL then binds to *1
            (assoc-in [:marks 0 :properties :hover] {:fill {:value "red"}})
            (title "Fibonacci with hover interactions")))
 
