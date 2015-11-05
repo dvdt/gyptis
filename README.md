@@ -36,6 +36,7 @@ Take a look at the [examples](examples/gyptis-usage)
 (plot! (stacked-bar data))
 ```
 
+![](./doc/fibonacci.png)
 Documentation
 ---
 - [API Docs](http://dvdt.github.io/gyptis/)
