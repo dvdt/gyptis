@@ -38,4 +38,4 @@ Also try looking at [examples/usage](examples/usage)
 
 Documentation
 ---
-- [API Docs](link to codox)
+- [API Docs](http://dvdt.github.io/gyptis/)
