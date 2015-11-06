@@ -16,7 +16,9 @@ Leiningen coordinates
 
 Usage
 ---
-Take a look at the [examples](examples/gyptis-usage)
+Take a look at the [examples](examples/gyptis-usage), or watch the video
+
+[![Gyptis Walkthrough](http://img.youtube.com/vi/bpYCDYpioqg/0.jpg)](https://www.youtube.com/watch?v=bpYCDYpioqg)
 
 ```clojure
 (use 'gyptis.core)
