@@ -81,8 +81,6 @@
           (title "Most unemployed counties")
           vertical-x-labels))
 
-(sql/query db [(str "SELECT state_abbrev, gu_name, state_fips, county_fips"
-                    " FROM fips_codes limit 1")])
 (def highest-unemployment-counties-by-name
   (sql/query db
              ["SELECT CONCAT_WS(', ', fips_codes.gu_name, fips_codes.state_abbrev) as x,
