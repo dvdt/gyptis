@@ -1,4 +1,5 @@
 (ns gyptis-usage.vega-interop
+  "Gyptis interops with vega"
   (:require [gyptis.core :refer :all]
             [gyptis.vega-templates :as vt]
             [gyptis.view :refer [plot!]]
