@@ -1,4 +1,4 @@
-(ns gyptis.core
+(ns gyptis.client
     (:require [reagent.core :as reagent]
               [gyptis.view.websocket :as ws]
               [gyptis.vega-templates :as vega]
