@@ -223,7 +223,7 @@
                     :source *table*
                     :transform [{:type "aggregate"
                                  :groupby [*x* *facet-x* *facet-y*]
-                                 :summarize [{:field *y* :ops "sum"}]}]}]
+                                 :summarize [{:field *y* :ops ["sum"]}]}]}]
     (merge-spec (bar data)
                 {:data [sum_y_data]
                  :scales

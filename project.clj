@@ -38,7 +38,8 @@
                                                                       [org.codehaus.plexus/plexus-utils]]]
                                   [org.clojure/tools.nrepl "0.2.11"]
                                   [com.cemerick/piggieback "0.1.5"]
-                                  [pjstadig/humane-test-output "0.7.0"]]
+                                  [pjstadig/humane-test-output "0.7.0"]
+                                  [com.github.fge/json-schema-validator "2.2.6"]]
 
                    :plugins [[lein-figwheel "0.3.9" :exclusions [[org.clojure/clojure]
                                                                  [org.clojure/core.async]
