@@ -4,79 +4,93 @@
             [gyptis.util :as util]))
 
 (defn facet-global
-  "Plots data with differing (`gyptis.vega-templates/*facet-x*`,
-  `gyptis.vega-templates/*facet-y*`) values in separate
+  "Plots data with differing facet_x and facet_y values in separate
   subplots. Scales are the same for each subplot (hence 'global')."
-  [{:keys [scales axes marks legends] [{data :values} & more] :data :as vega-spec}]
-  (let [facet-keyed-data (vt/ensure-facet-keys data)]
-    (-> vega-spec
-        ;; Force the mark to inherit data from it's parent
-        (assoc-in [:marks 0 :from :data] nil)
-        (vt/facet facet-keyed-data))))
+  [{:keys [scales axes marks legends] [{data :values} & more] :data :as vega-spec}
+   & [{:keys [facet_x facet_y] :or {facet_x :facet_x
+                                    facet_y :facet_y}}]]
+  (if-let [gyp-spec (get (meta vega-spec) :gyptis)]
+    (vt/facet-grid gyp-spec vega-spec facet_x facet_y nil)
+    (throw (Exception. "Facetting not implemented for this spec"))))
 
 (defn stacked-bar
   "Given a coll of hashmaps or vectors, returns a vega bar plot that
   stacks bars with the same x position. For a `stacked-bar`, each
-  hashmap (or vector) in data should have `*x*` and `*y*` keys from
-  the gyptis.vega-templates namespace.  `*fill*` is optional. The
-  `*x*` values are treated as categorical and `*y*` values are treated
-  as quantitative.
+  hashmap (or vector) in data should have `x` and `y` keys as set in
+  the `opts` map. `fill` is optional. The `x` values are treated as
+  categorical and `y` values are treated as quantitative.
 
   The following example code returns a (clojure) vega.js specification
   for a bar chart with letters on the x-axis and numbers on the
   y-axis:
 
-  (binding [gyptis.vega-templates/*x* :my-x
-            gyptis.vega-templates/*y* :my-y]
-    (stacked-bar [{:my-x \"a\" :my-y 1}
-                  {:my-x \"b\" :my-y 2}
-                  {:my-x \"c\" :my-y 3}])) "
-  [[datum & more :as data]]
-  (->> data
-       vt/->vg-data
-       vt/stacked-bar
-       (merge vt/top-level)))
+  (stacked-bar [{:my-x \"a\" :my-y 1}, {:my-x \"b\" :my-y 2}]
+               {:x :my-x :y :my-y})"
+
+  [[datum & more :as data] & [{:keys [x y fill]
+                               :or {x :x y :y fill :fill}
+                               :as opts}]]
+  (let [vg-data (vt/->vg-data data)
+        gy-spec (vt/->StackedBar vg-data)
+        vg-spec (vt/->vg-spec gy-spec (merge opts {:x x :y y :fill fill}))]
+    (with-meta (merge vt/top-level vg-spec) {:gyptis gy-spec})))
 
 (defn dodged-bar
   "Like `stacked-bar`, except returns a vega bar plot that dodges bars
   with the same y position."
-  [[datum & more :as data]]
-  (->> data
-       vt/->vg-data
-       vt/dodged-bar
-       (merge vt/top-level)))
+  [[datum & more :as data] & [{:keys [x y fill]
+                               :or {x :x y :y fill :fill}
+                               :as opts}]]
+  (let [vg-data (vt/->vg-data data)
+        gy-spec (vt/->DodgedBar vg-data)
+        vg-spec (vt/->vg-spec gy-spec (merge opts {:x x :y y :fill fill}))]
+    (with-meta (merge vt/top-level vg-spec) {:gyptis gy-spec})))
 
 (defn point
-  "Returns a vega.js symbol plot.  Each datum should have `*x*`
-  and `*y*` keys, and optionally, `*fill*` and `*size*`."
-  [[datum & more :as data]]
-  (->> data
-       vt/->vg-data
-       vt/point
-       (merge vt/top-level)))
+  "Returns a vega.js symbol plot.  Each datum should have `x` and `y`
+  keys, and optionally, `fill` and `size`. These keys are set in the
+  opts hashmap."
+  [[datum & more :as data] & [{:keys [x y fill size]
+                               :or {x :x y :y fill :fill size :size}
+                               :as opts}]]
+  (let [vg-data (vt/->vg-data data)
+        gy-spec (vt/->Point vg-data)
+        vg-spec (vt/->vg-spec gy-spec (merge opts {:x x :y y :fill fill :size size}))]
+    (with-meta (merge vt/top-level vg-spec) {:gyptis gy-spec})))
 
 (defn line
-  "Returns a vega.js symbol plot.  Each datum should have the `*x*`
-  and `*y*` keys, and optionally, `*stroke*`."
-  [[datum & more :as data]]
-  (->> data
-       vt/->vg-data
-       vt/line
-       (merge vt/top-level)))
+  "Returns a vega.js symbol plot.  Each datum should have the `x`
+  and `y` keys, and optionally, `stroke`."
+  [[datum & more :as data] & [{:keys [x y stroke]
+                               :or {x :x y :y stroke :stroke}
+                               :as opts}]]
+  (let [vg-data (vt/->vg-data data)
+        gy-spec (vt/->Line vg-data)
+        vg-spec (vt/->vg-spec gy-spec (merge opts {:x x :y y :stroke stroke}))]
+    (with-meta (merge vt/top-level vg-spec) {:gyptis gy-spec})))
 
 (defn choropleth
   "Returns a vega.js map choropleth. Each datum should have a
-  `*geojson*` key that maps to a GeoJson object val; and a `*fill*`."
-  [[datum & more :as data] & {:keys [type projection center translate scale
-                  precision clipAngle]
-           :or {type "geopath" projection "albersUsa"}}]
+  `geopath` key that maps to a GeoJson object val and a `fill` val
+  that can be represented by a quantitative scale. The
+  `:geopath-transform` option is passed directly to vega."
+  [[datum & more :as data] & [{fill :fill geopath :geopath
+                               {:keys [type projection center translate scale precision clipAngle]
+                                :or {type "geopath" projection "albersUsa"}} :geopath-transform
+                               :or {fill :fill geopath :geopath}
+                               :as opts}]]
   (let [geotransform {:type type :projection projection :center center
                       :translate translate :scale scale :precision precision
-                      :clipAngle clipAngle}]
-    (as-> data $
-      (vt/->vg-data $)
-      (vt/choropleth $ geotransform)
-      (merge vt/top-level $))))
+                      :clipAngle clipAngle}
+        raise-geopath (fn [datum] (-> datum
+                                      (dissoc geopath)
+                                      (merge (get datum geopath))))
+        vg-data (vt/->vg-data data [:fill])
+        vg-data (map raise-geopath vg-data)
+        gy-spec (vt/->Choropleth vg-data)
+        vg-spec (vt/->vg-spec gy-spec (merge opts {:fill fill
+                                                   :geopath-transform geotransform}))]
+    (with-meta (merge vt/top-level vg-spec) {:gyptis gy-spec})))
 
 (defn title
   "Adds data and a text mark to the given spec to display the title-text."

@@ -35,12 +35,11 @@
            (title "Fibonacci with hover interactions")))
 
 ;; Subplots are easy
-(binding [vt/*facet-x* :fill]
-  (-> data
-      stacked-bar
-      facet-global
-      (title "Facetting by the 'fill'")
-      plot!))
+(-> data
+    stacked-bar
+    (facet-global {:facet_x :fill})
+    (title "Facetting by the 'fill'")
+    plot!)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Works on time series.
@@ -77,9 +76,9 @@
 (plot! (-> (sql/query db ["SELECT fips_county as x, unemploy_rate as y
                           FROM unemployment
                           ORDER BY unemploy_rate DESC LIMIT 20"])
-          stacked-bar
-          (title "Most unemployed counties")
-          vertical-x-labels))
+           stacked-bar
+           (title "Most unemployed counties")
+           vertical-x-labels))
 
 (def highest-unemployment-counties-by-name
   (sql/query db
@@ -106,9 +105,9 @@
              :row-fn #(update % :geopath json/read-str)))
 
 (-> county-unemployment-geo
-    (choropleth :projection "albersUsa"
-                :scale 800
-                :translate [200 200])
+    (choropleth {:geopath-transform {:projection "albersUsa"
+                                     :scale 800
+                                     :translate [200 200]}})
     (title "US unemployment rates")
     plot!
     count)
