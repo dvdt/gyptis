@@ -185,7 +185,7 @@
              :range "width",
              ;; manually set domain because vega.js will re-order
              ;; the domain if we try to pass in the field as in y below
-             :domain (u/dedup (map #(get % *x*) data))}
+             :domain {:data *table* :field *x* :sort false}}
             {:name "y",
              :type "linear",
              :range "height",
@@ -229,7 +229,7 @@
                  :scales
                  ^:replace [{:name "x",
                              :type "ordinal",
-                             :domain (u/dedup (map #(get % *x*) data)),
+                             :domain {:data *table* :field *x* :sort false},
                              :range "width"}
                             {:name "y",
                              :type "linear",
@@ -283,7 +283,7 @@
                                                 :type "ordinal",
                                                 :padding 0.2,
                                                 :range "width",
-                                                :domain (u/dedup (map #(get % *x*) data))}
+                                                :domain {:data *table* :field *x* :sort false}}
                                                {:name "y",
                                                 :type "linear",
                                                 :range "height",
