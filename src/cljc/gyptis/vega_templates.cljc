@@ -40,7 +40,7 @@
         (number? d) "linear"
         (or (string? d) (nil? d)) "ordinal"
         :else (throw #?(:cljs
-                        (js/Error (str "Can't guess scale type for " d ", type= " (type d)))
+                        (js/Error. (str "Can't guess scale type for " d ", type= " (type d)))
                         :clj
                         (Exception. (str "Can't guess scale type for " d))))))))
 

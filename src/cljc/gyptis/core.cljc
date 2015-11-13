@@ -11,7 +11,8 @@
                                     facet_y :facet_y}}]]
   (if-let [gyp-spec (get (meta vega-spec) :gyptis)]
     (vt/facet-grid gyp-spec vega-spec facet_x facet_y nil)
-    (throw (Exception. "Facetting not implemented for this spec"))))
+    (throw #?(:clj (Exception. "Facetting not implemented for this spec")
+              :cljs (js/Error. "Facetting not implemented for this spec")))))
 
 (defn stacked-bar
   "Given a coll of hashmaps or vectors, returns a vega bar plot that
