@@ -1,6 +1,6 @@
-(defproject gyptis "0.1.0"
+(defproject gyptis "0.2.0"
   :description "A library for generating and viewing vega.js plots"
-  :url ""
+  :url "https://github.com/dvdt/gyptis"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
