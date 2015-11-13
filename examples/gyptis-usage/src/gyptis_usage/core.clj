@@ -46,9 +46,9 @@
 
 (def time-series-data
   [{:x (java.util.Date. "Jan 1, 2015"), :y 1 :stroke "a"}
-   {:x (java.util.Date. "Jan 2, 2015"), :y 2 :stroke "a"}
-   {:x (java.util.Date. "Jan 3, 2015"), :y 4 :stroke "a"}
-   {:x (java.util.Date. "Jan 4, 2015"), :y 9 :stroke "a"}
+   {:x (java.util.Date. "Jan 2, 2015"), :y 4 :stroke "a"}
+   {:x (java.util.Date. "Jan 3, 2015"), :y 9 :stroke "a"}
+   {:x (java.util.Date. "Jan 4, 2015"), :y 16 :stroke "a"}
 
    {:x (java.util.Date. "Jan 1, 2015"), :y 2 :stroke "b"}
    {:x (java.util.Date. "Jan 2, 2015"), :y 3 :stroke "b"}
