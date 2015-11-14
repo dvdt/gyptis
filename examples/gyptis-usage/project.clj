@@ -7,4 +7,4 @@
                  [org.clojure/java.jdbc "0.4.2"]
                  [com.h2database/h2 "1.4.190"]
                  [clj-http "2.0.0"]
-                 [gyptis "0.1.0-SNAPSHOT"]])
+                 [gyptis "0.2.0"]])
