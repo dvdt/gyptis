@@ -37,7 +37,7 @@
 ;; Subplots are easy
 (-> data
     stacked-bar
-    (facet-global {:facet_x :fill})
+    (facet-grid {:facet_x :fill})
     (title "Facetting by the 'fill'")
     plot!)
 

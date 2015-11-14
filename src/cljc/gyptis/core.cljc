@@ -3,9 +3,9 @@
   (:require [gyptis.vega-templates :as vt]
             [gyptis.util :as util]))
 
-(defn facet-global
+(defn facet-grid
   "Plots data with differing facet_x and facet_y values in separate
-  subplots. Scales are the same for each subplot (hence 'global')."
+  subplots. Scales are the same for each subplot."
   [{:keys [scales axes marks legends] [{data :values} & more] :data :as vega-spec}
    & [{:keys [facet_x facet_y] :or {facet_x :facet_x
                                     facet_y :facet_y}}]]

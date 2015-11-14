@@ -16,17 +16,17 @@
               {:x "n=6", :y 5 :fill "n-1"}
               {:x "n=6", :y 3 :fill "n-2"}]]
     (is (valid? (stacked-bar data)))
-    (is (valid? (facet-global (stacked-bar data))))
+    (is (valid? (facet-grid (stacked-bar data))))
     (is (valid? (dodged-bar data)))
-    (is (valid? (facet-global (dodged-bar data))))
+    (is (valid? (facet-grid (dodged-bar data))))
     (is (valid? (point data)))
-    (is (valid? (facet-global (point data))))
+    (is (valid? (facet-grid (point data))))
     (is (valid? (line data {:stroke :fill})))
-    (is (valid? (facet-global (line data {:stroke :fill}))))))
+    (is (valid? (facet-grid (line data {:stroke :fill}))))))
 
 (deftest facet-test
   (testing "Facetting causes positioned stacked-bar scale to adjust accordingly."
-    (let [facet-spec (facet-global (stacked-bar [{:x 1 :y "a"}]) {:facet_x :facet_xx})
+    (let [facet-spec (facet-grid (stacked-bar [{:x 1 :y "a"}]) {:facet_x :facet_xx})
           stack-position (get-in facet-spec [:data 1])]
       (is (= "stats" (:name stack-position)))
       (is (= [:x :facet_xx :facet_y]
