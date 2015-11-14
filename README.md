@@ -11,7 +11,7 @@ Gyptis, a clojure/script data visualization library for the web, based on vega.j
 Leiningen coordinates
 ---
 ```clojure
-[gyptis "0.1.0"]
+[gyptis "0.2.0"]
 ```
 
 Usage
@@ -42,3 +42,16 @@ Take a look at the [examples](examples/gyptis-usage), or watch the video
 Documentation
 ---
 - [API Docs](http://dvdt.github.io/gyptis/)
+
+Changelog
+===
+
+0.2.0
+---
+**Breaking changes**
+- Removes ability to bind vega_templates/*x*, etc. to
+  aesthetics. Binding data to aesthetics is now passed to gyptis
+  functions as option maps.
+- Rename facet-global => facet-grid
+- Rename core.cljs => client.cljs. (This is CLJS code that interops
+  with vega within the browser.)
