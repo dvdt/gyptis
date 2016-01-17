@@ -31,39 +31,7 @@
                                         :optimizations :none
                                         :pretty-print  true}}}}
 
-  :profiles {:dev {:dependencies [[lein-figwheel "0.3.9" :exclusions [[org.clojure/clojure]
-                                                                      [org.clojure/core.async]
-                                                                      [com.google.javascript/closure-compiler]
-                                                                      [com.google.javascript/closure-compiler-externs]
-                                                                      [org.codehaus.plexus/plexus-utils]]]
-                                  [org.clojure/tools.nrepl "0.2.11"]
-                                  [com.cemerick/piggieback "0.1.5"]
-                                  [pjstadig/humane-test-output "0.7.0"]
-                                  [com.github.fge/json-schema-validator "2.2.6"]]
-
-                   :plugins [[lein-figwheel "0.3.9" :exclusions [[org.clojure/clojure]
-                                                                 [org.clojure/core.async]
-                                                                 [com.google.javascript/closure-compiler]
-                                                                 [com.google.javascript/closure-compiler-externs]
-                                                                 [org.codehaus.plexus/plexus-utils]]]
-                             [cider/cider-nrepl "0.10.0-SNAPSHOT"]
-                             [refactor-nrepl "2.0.0-20151021.210235-11" :exclusions [org.clojure/clojure]]
-                             [lein-cljsbuild "1.1.0"]]
-
-                   :injections [(require 'pjstadig.humane-test-output)
-                                (pjstadig.humane-test-output/activate!)]
-
-                   :figwheel {:nrepl-port 7002
-                              :nrepl-middleware ["cemerick.piggieback/wrap-cljs-repl"
-                                                 "cider.nrepl/cider-middleware"
-                                                 "refactor-nrepl.middleware/wrap-refactor"]
-                              :css-dirs ["resources/public/css"]}
-
-                   :cljsbuild {:builds {:app {:source-paths ["env/dev/cljs"]
-                                              :compiler {:main "gyptis.dev"
-                                                         :source-map true}}}}}
-
-             ;; For cljs compilation
+  :profiles {;; For cljs compilation
              ;; TIMBRE_LEVEL=':warn' lein with-profile prod do clean, cljsbuild once app
              :prod {:clean-targets ^{:protect false} [:target-path
                                                       [:cljsbuild :builds :app :compiler :output-dir]
