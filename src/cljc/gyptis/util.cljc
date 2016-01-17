@@ -59,3 +59,12 @@
                       [seen? deduped]
                       [(conj seen? x) (conj deduped x)]))
                   [#{} []] xs)))
+
+(defn last-unique-elem
+  [xs]
+  (second
+    (reduce (fn [[seen last] next]
+              (if (seen next)
+                [seen last]
+                [(conj seen next) next]))
+            [#{} nil] xs)))

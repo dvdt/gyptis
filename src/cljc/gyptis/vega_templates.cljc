@@ -84,15 +84,18 @@
   bottom row and first column"
   [facet-mark [datum & more :as data] facet_x facet_y]
   (let [first-facet-x (->> facet_x (get datum) u/->json)
-        last-facet-y (->> facet_y (get (last more)) u/->json)
-        unlabelled-facet-pred (str "datum." (name facet_x) "!==" first-facet-x
-                                   " && datum." (name facet_y) "!==" last-facet-y)
-        x-label-facet-pred (str "datum." (name facet_x) "!==" first-facet-x
-                                " && datum." (name facet_y) "===" last-facet-y)
-        y-label-facet-pred   (str "datum." (name facet_x) "===" first-facet-x
-                                  " && datum." (name facet_y) "!==" last-facet-y)
-        xy-label-facet-pred (str "datum." (name facet_x) "===" first-facet-x
-                                   " && datum." (name facet_y) "===" last-facet-y)
+        last-facet-y (->> data
+                          (map #(get % facet_y))
+                          u/last-unique-elem
+                          u/->json)
+        unlabelled-facet-pred (str "datum['" (name facet_x) "'] !==" first-facet-x
+                                   " && datum['" (name facet_y) "'] !==" last-facet-y)
+        x-label-facet-pred (str "datum['" (name facet_x) "'] !==" first-facet-x
+                                " && datum['" (name facet_y) "'] ===" last-facet-y)
+        y-label-facet-pred   (str "datum['" (name facet_x) "'] ===" first-facet-x
+                                  " && datum['" (name facet_y) "'] !==" last-facet-y)
+        xy-label-facet-pred (str "datum['" (name facet_x) "'] ===" first-facet-x
+                                   " && datum['" (name facet_y) "'] ===" last-facet-y)
 
         unlabelled-facet-mark
         (-> facet-mark
