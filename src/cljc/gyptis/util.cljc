@@ -1,7 +1,6 @@
 (ns gyptis.util
   #?(:clj
-     (:require [clojure.data.json :as json]
-               [clj-time.format :as f])))
+     (:require [clojure.data.json :as json])))
 
 (defn merge-spec
   "Similar to how leiningen merges profiles:
@@ -39,18 +38,6 @@
   ([k m]
    (ensure-key k nil m)))
 
-#?(:clj
-   (defn date?
-     [x]
-     (or (instance? java.util.Date x)))
-
-   :cljs
-   (defn date?
-     [x]
-
-     (instance? js/Date x)
-     true))
-
 (defn ->epoch-millis
   "Takes a java.util.Date or joda DateTime or js/Date
   instance and returns milliseconds since UNIX epoch. Returns a nil if passed none of those."
@@ -62,6 +49,8 @@
        java.lang.Object nil)
      :cljs (when (isa? js/Date (type date))
              (.getTime date))))
+
+(def date? (comp not nil? ->epoch-millis))
 
 (defn dedup
   [xs]
