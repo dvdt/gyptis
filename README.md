@@ -11,7 +11,7 @@ Gyptis, a clojure/script data visualization library for the web, based on vega.j
 Leiningen coordinates
 ---
 ```clojure
-[gyptis "0.2.0"]
+[gyptis "0.2.1"]
 ```
 
 Usage
