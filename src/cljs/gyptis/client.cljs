@@ -1,8 +1,8 @@
 (ns gyptis.client
-    (:require [reagent.core :as reagent]
-              [gyptis.view.websocket :as ws]
-              [gyptis.vega-templates :as vega]
-              [taoensso.timbre :as timbre :refer-macros (trace tracef debugf infof warnf errorf)]))
+  (:require [reagent.core :as reagent]
+            [gyptis.view.websocket :as ws]
+            [gyptis.vega-templates :as vega]
+            [taoensso.timbre :as timbre :refer-macros (trace tracef debugf infof warnf errorf)]))
 
 
 ;; holds the vg.View instance and vega-spec
@@ -21,7 +21,7 @@
   (let [spec (clj->js vega-spec)
         callback
         (fn [chart]
-          (let [view (chart #js {:el (str "#" div-id)
+          (let [view (chart #js {:el       (str "#" div-id)
                                  :renderer *renderer*})]
             (swap! plot-cursor assoc :view view)
             (.update view))
@@ -35,14 +35,14 @@
   [div-id plot-cursor]
   (let [current-spec (atom nil)]
     (reagent/create-class
-     {:display-name "plot-component"
-      :reagent-render
-      (fn []
-        (when-let [new-spec (:spec @plot-cursor)]
-          (when (not= new-spec @current-spec)
-            (swap! current-spec (constantly new-spec))
-            (swap-plot! new-spec div-id plot-cursor)))
-        [:div {:id div-id}])})))
+      {:display-name "plot-component"
+       :reagent-render
+                     (fn []
+                       (when-let [new-spec (:spec @plot-cursor)]
+                         (when (not= new-spec @current-spec)
+                           (swap! current-spec (constantly new-spec))
+                           (swap-plot! new-spec div-id plot-cursor)))
+                       [:div {:id div-id}])})))
 
 (defn root []
   [:div

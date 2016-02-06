@@ -43,10 +43,10 @@
   instance and returns milliseconds since UNIX epoch. Returns a nil if passed none of those."
   [date]
   #?(:clj
-     (condp #(isa? %2 %1) (type date)
-       java.util.Date (.getTime date)
-       org.joda.time.ReadableInstant (.getMillis date)
-       java.lang.Object nil)
+           (condp #(isa? %2 %1) (type date)
+             java.util.Date (.getTime date)
+             org.joda.time.ReadableInstant (.getMillis date)
+             java.lang.Object nil)
      :cljs (when (isa? js/Date (type date))
              (.getTime date))))
 
