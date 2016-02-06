@@ -4,6 +4,7 @@
             [taoensso.timbre :as timbre :refer (tracef debugf infof warnf errorf)]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
             [ring.middleware.reload :refer [wrap-reload]]
+            [ring.middleware.x-headers :refer [wrap-frame-options]]
             [gyptis.view.websocket :as ws]
             [hiccup.core :refer [html]]
             [hiccup.page :refer [include-css include-js]]
@@ -91,5 +92,6 @@
   (routes/not-found "Not Found"))
 
 (def app
-  (let [handler (wrap-defaults #'routes site-defaults)]
-    handler))
+  (-> #'routes
+      (wrap-defaults site-defaults)
+      (wrap-frame-options {:allow-from "*"})))
