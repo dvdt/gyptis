@@ -1,5 +1,6 @@
 (ns gyptis.test.util
   (:require [clojure.test :refer :all]
+            [clj-time.core]
             [gyptis.util :refer :all]))
 
 (deftest test->epoch-millis
