@@ -218,7 +218,9 @@
                                     :width {:scale "x" :band true :offset -1}
                                     :y     {:scale "y" :field "layout_start"}
                                     :y2    {:scale "y" :field "layout_end"}
-                                    :fill  {:scale "fill" :field fill}}}}
+                                    :fill  {:scale "fill" :field fill}
+                                    :stroke {:value "white"}
+                                    :strokeWidth {:value 1}}}}
         sum_y_data {:name      "stats"
                     :source    "table"
                     :transform [{:type      "aggregate"
@@ -275,7 +277,9 @@
    :properties
          {:update
           {:x     {:scale "x", :field x},
-           :width {:scale "x", :band true}}
+           :width {:scale "x", :band true}
+           :stroke {:value "white"}
+           :strokeWidth {:value 1}}
           },
    :marks
          [{:name "dodged-bars",
